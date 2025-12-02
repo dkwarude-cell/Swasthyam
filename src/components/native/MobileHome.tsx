@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
   chartSection: {
     backgroundColor: '#1b4a5a',
     paddingTop: 10,
-    paddingLeft: -10,
+    paddingLeft: 0,
     paddingRight: 10,
     paddingBottom: 30,
   },
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
     marginBottom: -15,
-    paddingLeft: 30,
+    paddingLeft: 15,
   },
   chartContainer: {
     flexDirection: 'row',
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   },
   chartWrapper: {
     width: '65%',
-    marginLeft: -10,
+    marginLeft: 0,
   },
   naniContainer: {
     width: '35%',

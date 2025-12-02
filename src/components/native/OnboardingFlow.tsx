@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { OnboardingScreen1 } from './onboarding/OnboardingScreen1';
-import { OnboardingScreen2 } from './onboarding/OnboardingScreen2';
-import { OnboardingScreen3 } from './onboarding/OnboardingScreen3';
-import { OnboardingScreen4 } from './onboarding/OnboardingScreen4';
-import { OnboardingScreen5 } from './onboarding/OnboardingScreen5';
+import { AwarenessScreen } from './onboarding/AwarenessScreen';
+import { BasicInfoScreen } from './onboarding/BasicInfoScreen';
+import { MedicalHistoryScreen } from './onboarding/MedicalHistoryScreen';
+import { EatingHabitsScreen } from './onboarding/EatingHabitsScreen';
+import { YourOilScreen } from './onboarding/YourOilScreen';
+import { OilInsightsScreen } from './onboarding/OilInsightsScreen';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -12,7 +13,7 @@ interface OnboardingFlowProps {
 }
 
 export function OnboardingFlow({ onComplete, language }: OnboardingFlowProps) {
-  const [currentScreen, setCurrentScreen] = useState(1);
+  const [currentScreen, setCurrentScreen] = useState(0);
   const [userData, setUserData] = useState<any>({});
 
   const handleNext = (screenNumber: number, data: any) => {
@@ -25,11 +26,17 @@ export function OnboardingFlow({ onComplete, language }: OnboardingFlowProps) {
     // Move to next screen
     if (screenNumber < 5) {
       setCurrentScreen(screenNumber + 1);
+    } else {
+      handleComplete();
     }
   };
 
+  const handleStart = () => {
+    setCurrentScreen(1);
+  };
+
   const handleBack = () => {
-    if (currentScreen > 1) {
+    if (currentScreen > 0) {
       setCurrentScreen(currentScreen - 1);
     }
   };
@@ -49,8 +56,15 @@ export function OnboardingFlow({ onComplete, language }: OnboardingFlowProps) {
 
   return (
     <View style={styles.container}>
+      {currentScreen === 0 && (
+        <AwarenessScreen
+          onStart={handleStart}
+          language={language}
+        />
+      )}
+      
       {currentScreen === 1 && (
-        <OnboardingScreen1
+        <BasicInfoScreen
           onNext={(data) => handleNext(1, data)}
           onSkip={handleSkip}
           onBack={handleBack}
@@ -59,16 +73,17 @@ export function OnboardingFlow({ onComplete, language }: OnboardingFlowProps) {
       )}
       
       {currentScreen === 2 && (
-        <OnboardingScreen2
+        <MedicalHistoryScreen
           onNext={(data) => handleNext(2, data)}
           onSkip={handleSkip}
           onBack={handleBack}
           language={language}
+          userData={userData}
         />
       )}
       
       {currentScreen === 3 && (
-        <OnboardingScreen3
+        <EatingHabitsScreen
           onNext={(data) => handleNext(3, data)}
           onSkip={handleSkip}
           onBack={handleBack}
@@ -77,7 +92,7 @@ export function OnboardingFlow({ onComplete, language }: OnboardingFlowProps) {
       )}
       
       {currentScreen === 4 && (
-        <OnboardingScreen4
+        <YourOilScreen
           onNext={(data) => handleNext(4, data)}
           onSkip={handleSkip}
           onBack={handleBack}
@@ -86,7 +101,7 @@ export function OnboardingFlow({ onComplete, language }: OnboardingFlowProps) {
       )}
       
       {currentScreen === 5 && (
-        <OnboardingScreen5
+        <OilInsightsScreen
           onComplete={handleComplete}
           onBack={handleBack}
           language={language}

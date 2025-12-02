@@ -318,9 +318,13 @@ export function AppNavigator() {
       const authData = await AsyncStorage.getItem('authState');
       if (authData) {
         const { isLoggedIn: savedLogin, isOTPVerified: savedOTP, isOnboardingComplete: savedOnboarding, selectedLanguage: savedLang } = JSON.parse(authData);
-        setIsLoggedIn(savedLogin || false);
-        setIsOTPVerified(savedOTP || false);
-        setIsOnboardingComplete(savedOnboarding || false);
+        // Always start with login screen - comment out saved state for testing
+        // setIsLoggedIn(savedLogin || false);
+        // setIsOTPVerified(savedOTP || false);
+        // setIsOnboardingComplete(savedOnboarding || false);
+        setIsLoggedIn(false);
+        setIsOTPVerified(false);
+        setIsOnboardingComplete(false);
         setSelectedLanguage(savedLang || 'en');
       }
     } catch (error) {
