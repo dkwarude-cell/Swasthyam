@@ -766,7 +766,22 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     width: 200,
   },
-
+  naniSpeechArrow: {
+    position: 'absolute',
+    right: -6,
+    top: '50%',
+    marginTop: -6,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 0,
+    borderTopWidth: 6,
+    borderBottomWidth: 6,
+    borderLeftColor: '#ffffff',
+    borderRightColor: 'transparent',
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+  },
   naniBox: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 16,

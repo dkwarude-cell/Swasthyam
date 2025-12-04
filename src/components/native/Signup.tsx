@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -15,39 +15,25 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from './Button';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  useGoogleAuth, 
-  useFacebookAuth, 
-  signInWithApple, 
-  isAppleSignInAvailable 
-} from '../../services/socialAuth';
 
-interface LoginProps {
+interface SignupProps {
   onComplete: () => void;
-  onSignup: () => void;
+  onLogin: () => void;
   language: string;
   onLanguageChange?: (lang: string) => void;
 }
 
-export function Login({ onComplete, onSignup, language, onLanguageChange }: LoginProps) {
-  const { login, loginWithSocial, isLoading, error, clearError } = useAuth();
+export function Signup({ onComplete, onLogin, language, onLanguageChange }: SignupProps) {
+  const { signup, isLoading, error, clearError } = useAuth();
   
-  // Social auth hooks
-  const { signInWithGoogle, isReady: googleReady } = useGoogleAuth();
-  const { signInWithFacebook, isReady: facebookReady } = useFacebookAuth();
-  const [appleAvailable, setAppleAvailable] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<string | null>(null);
-  
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-
-  // Check if Apple Sign In is available
-  useEffect(() => {
-    isAppleSignInAvailable().then(setAppleAvailable);
-  }, []);
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -56,8 +42,52 @@ export function Login({ onComplete, onSignup, language, onLanguageChange }: Logi
 
   const currentLanguage = languages.find(l => l.code === language) || languages[0];
 
+  const text = {
+    en: {
+      createAccount: 'Create Account',
+      joinSwasthyam: 'Join Swasthyam Today',
+      name: 'Full Name',
+      email: 'Email',
+      password: 'Password',
+      confirmPassword: 'Confirm Password',
+      signUpButton: 'Sign Up',
+      orSignUpWith: 'Or sign up with',
+      haveAccount: 'Already have an account?',
+      login: 'Login',
+      passwordHint: 'At least 8 characters with uppercase, lowercase & number',
+      namePlaceholder: 'Enter your full name',
+      emailPlaceholder: 'Enter your email',
+      passwordPlaceholder: 'Create a password',
+      confirmPasswordPlaceholder: 'Confirm your password',
+    },
+    hi: {
+      createAccount: 'खाता बनाएं',
+      joinSwasthyam: 'आज ही SwasthTel से जुड़ें',
+      name: 'पूरा नाम',
+      email: 'ईमेल',
+      password: 'पासवर्ड',
+      confirmPassword: 'पासवर्ड की पुष्टि करें',
+      signUpButton: 'साइन अप करें',
+      orSignUpWith: 'या साइन अप करें',
+      haveAccount: 'पहले से खाता है?',
+      login: 'लॉगिन करें',
+      passwordHint: 'कम से कम 8 अक्षर अपरकेस, लोअरकेस और नंबर के साथ',
+      namePlaceholder: 'अपना पूरा नाम दर्ज करें',
+      emailPlaceholder: 'अपना ईमेल दर्ज करें',
+      passwordPlaceholder: 'पासवर्ड बनाएं',
+      confirmPasswordPlaceholder: 'पासवर्ड की पुष्टि करें',
+    },
+  };
+
+  const t = text[language as keyof typeof text] || text.en;
+
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
+    
+    // Name validation
+    if (!name.trim()) {
+      errors.name = 'Name is required';
+    }
     
     // Email validation
     const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
@@ -70,22 +100,40 @@ export function Login({ onComplete, onSignup, language, onLanguageChange }: Logi
     // Password validation
     if (!password) {
       errors.password = 'Password is required';
+    } else {
+      if (password.length < 8) {
+        errors.password = 'Password must be at least 8 characters';
+      } else if (!/[A-Z]/.test(password)) {
+        errors.password = 'Password must contain at least one uppercase letter';
+      } else if (!/[a-z]/.test(password)) {
+        errors.password = 'Password must contain at least one lowercase letter';
+      } else if (!/[0-9]/.test(password)) {
+        errors.password = 'Password must contain at least one number';
+      }
+    }
+    
+    // Confirm password validation
+    if (!confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password';
+    } else if (password !== confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
     }
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleLogin = async () => {
+  const handleSignup = async () => {
     clearError();
     
     if (!validateForm()) {
       return;
     }
     
-    const response = await login({
+    const response = await signup({
       email: email.trim().toLowerCase(),
-      password
+      password,
+      name: name.trim()
     });
     
     if (response.success) {
@@ -95,76 +143,17 @@ export function Login({ onComplete, onSignup, language, onLanguageChange }: Logi
       if (response.errors) {
         setValidationErrors(response.errors);
       } else {
-        Alert.alert('Login Failed', response.message || 'Invalid email or password');
+        Alert.alert('Signup Failed', response.message || 'Please try again');
       }
     }
   };
 
-  // Handle social login
-  const handleSocialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
-    setSocialLoading(provider);
-    clearError();
-    
-    try {
-      let result;
-      
-      switch (provider) {
-        case 'google':
-          result = await signInWithGoogle();
-          break;
-        case 'facebook':
-          result = await signInWithFacebook();
-          break;
-        case 'apple':
-          result = await signInWithApple();
-          break;
-      }
-      
-      if (result.success && result.token && result.user) {
-        // Store auth data using AuthContext
-        await loginWithSocial(result.token, result.user as any);
-        onComplete();
-      } else if (result.error && result.error !== 'Sign in cancelled') {
-        Alert.alert('Sign In Failed', result.error);
-      }
-    } catch (err) {
-      console.error(`${provider} sign in error:`, err);
-      Alert.alert('Error', `Failed to sign in with ${provider}. Please try again.`);
-    } finally {
-      setSocialLoading(null);
-    }
+  const handleSocialSignup = (provider: string) => {
+    console.log(`Sign up with ${provider}`);
+    Alert.alert('Coming Soon', `${provider} signup will be available soon!`);
   };
 
-  const isFormValid = email && password;
-
-  const text = {
-    en: {
-      hello: 'Hello!',
-      welcome: 'Welcome to Swasthyam',
-      login: 'Login',
-      email: 'Email',
-      password: 'Password',
-      forgotPassword: 'Forgot Password?',
-      loginButton: 'Login',
-      orLoginWith: 'Or login with',
-      noAccount: "Don't have account?",
-      signUp: 'Sign Up',
-    },
-    hi: {
-      hello: 'नमस्ते!',
-      welcome: 'SwasthTel में आपका स्वागत है',
-      login: 'लॉगिन',
-      email: 'ईमेल',
-      password: 'पासवर्ड',
-      forgotPassword: 'पासवर्ड भूल गए?',
-      loginButton: 'लॉगिन करें',
-      orLoginWith: 'या लॉगिन करें',
-      noAccount: 'खाता नहीं है?',
-      signUp: 'साइन अप करें',
-    },
-  };
-
-  const t = text[language as keyof typeof text] || text.en;
+  const isFormValid = name && email && password && confirmPassword && password === confirmPassword;
 
   return (
     <KeyboardAvoidingView 
@@ -174,6 +163,7 @@ export function Login({ onComplete, onSignup, language, onLanguageChange }: Logi
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Decorative Background Elements */}
         <View style={[styles.decorCircle, styles.decorCircle1]} />
@@ -224,11 +214,11 @@ export function Login({ onComplete, onSignup, language, onLanguageChange }: Logi
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.helloText}>{t.hello}</Text>
-          <Text style={styles.welcomeText}>{t.welcome}</Text>
+          <Text style={styles.helloText}>{t.createAccount}</Text>
+          <Text style={styles.welcomeText}>{t.joinSwasthyam}</Text>
         </View>
 
-        {/* Login Card */}
+        {/* Signup Card */}
         <View style={styles.card}>
           {/* Logo */}
           <View style={styles.logoContainer}>
@@ -239,15 +229,39 @@ export function Login({ onComplete, onSignup, language, onLanguageChange }: Logi
             />
           </View>
 
-          <Text style={styles.loginTitle}>{t.login}</Text>
+          {/* Name Input */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>{t.name}</Text>
+            <View style={[styles.inputContainer, validationErrors.name && styles.inputError]}>
+              <Ionicons name="person-outline" size={20} color="#5B5B5B" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder={t.namePlaceholder}
+                placeholderTextColor="#5B5B5B"
+                value={name}
+                onChangeText={(text) => {
+                  setName(text);
+                  if (validationErrors.name) {
+                    setValidationErrors({ ...validationErrors, name: '' });
+                  }
+                }}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+            </View>
+            {validationErrors.name && (
+              <Text style={styles.errorText}>{validationErrors.name}</Text>
+            )}
+          </View>
 
           {/* Email Input */}
           <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>{t.email}</Text>
             <View style={[styles.inputContainer, validationErrors.email && styles.inputError]}>
               <Ionicons name="mail-outline" size={20} color="#5B5B5B" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder={t.email}
+                placeholder={t.emailPlaceholder}
                 placeholderTextColor="#5B5B5B"
                 value={email}
                 onChangeText={(text) => {
@@ -268,11 +282,12 @@ export function Login({ onComplete, onSignup, language, onLanguageChange }: Logi
 
           {/* Password Input */}
           <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>{t.password}</Text>
             <View style={[styles.inputContainer, validationErrors.password && styles.inputError]}>
               <Ionicons name="lock-closed-outline" size={20} color="#5B5B5B" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder={t.password}
+                placeholder={t.passwordPlaceholder}
                 placeholderTextColor="#5B5B5B"
                 value={password}
                 onChangeText={(text) => {
@@ -293,15 +308,44 @@ export function Login({ onComplete, onSignup, language, onLanguageChange }: Logi
                 />
               </TouchableOpacity>
             </View>
+            <Text style={styles.hintText}>{t.passwordHint}</Text>
             {validationErrors.password && (
               <Text style={styles.errorText}>{validationErrors.password}</Text>
             )}
           </View>
 
-          {/* Forgot Password */}
-          <TouchableOpacity style={styles.forgotPasswordContainer}>
-            <Text style={styles.forgotPasswordText}>{t.forgotPassword}</Text>
-          </TouchableOpacity>
+          {/* Confirm Password Input */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>{t.confirmPassword}</Text>
+            <View style={[styles.inputContainer, validationErrors.confirmPassword && styles.inputError]}>
+              <Ionicons name="lock-closed-outline" size={20} color="#5B5B5B" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder={t.confirmPasswordPlaceholder}
+                placeholderTextColor="#5B5B5B"
+                value={confirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  if (validationErrors.confirmPassword) {
+                    setValidationErrors({ ...validationErrors, confirmPassword: '' });
+                  }
+                }}
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <Ionicons 
+                  name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} 
+                  size={20} 
+                  color="#5B5B5B" 
+                />
+              </TouchableOpacity>
+            </View>
+            {validationErrors.confirmPassword && (
+              <Text style={styles.errorText}>{validationErrors.confirmPassword}</Text>
+            )}
+          </View>
 
           {/* Global Error */}
           {error && (
@@ -311,72 +355,55 @@ export function Login({ onComplete, onSignup, language, onLanguageChange }: Logi
             </View>
           )}
 
-          {/* Login Button */}
+          {/* Sign Up Button */}
           <Button
-            onPress={handleLogin}
+            onPress={handleSignup}
             style={[styles.button, (!isFormValid || isLoading) && styles.buttonDisabled]}
             disabled={!isFormValid || isLoading}
           >
             {isLoading ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
-              t.loginButton
+              t.signUpButton
             )}
           </Button>
 
           {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>{t.orLoginWith}</Text>
+            <Text style={styles.dividerText}>{t.orSignUpWith}</Text>
             <View style={styles.dividerLine} />
           </View>
 
           {/* Social Login Buttons */}
           <View style={styles.socialContainer}>
             <TouchableOpacity
-              style={[styles.socialButton, socialLoading === 'facebook' && styles.socialButtonLoading]}
-              onPress={() => handleSocialLogin('facebook')}
-              disabled={!!socialLoading}
+              style={styles.socialButton}
+              onPress={() => handleSocialSignup('facebook')}
             >
-              {socialLoading === 'facebook' ? (
-                <ActivityIndicator color="#1877F2" size="small" />
-              ) : (
-                <Ionicons name="logo-facebook" size={24} color="#1877F2" />
-              )}
+              <Ionicons name="logo-facebook" size={24} color="#1877F2" />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.socialButton, socialLoading === 'google' && styles.socialButtonLoading]}
-              onPress={() => handleSocialLogin('google')}
-              disabled={!!socialLoading}
+              style={styles.socialButton}
+              onPress={() => handleSocialSignup('google')}
             >
-              {socialLoading === 'google' ? (
-                <ActivityIndicator color="#EA4335" size="small" />
-              ) : (
-                <Ionicons name="logo-google" size={24} color="#EA4335" />
-              )}
+              <Ionicons name="logo-google" size={24} color="#EA4335" />
             </TouchableOpacity>
 
-            {(Platform.OS === 'ios' || appleAvailable) && (
-              <TouchableOpacity
-                style={[styles.socialButton, socialLoading === 'apple' && styles.socialButtonLoading]}
-                onPress={() => handleSocialLogin('apple')}
-                disabled={!!socialLoading}
-              >
-                {socialLoading === 'apple' ? (
-                  <ActivityIndicator color="#040707" size="small" />
-                ) : (
-                  <Ionicons name="logo-apple" size={24} color="#040707" />
-                )}
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={() => handleSocialSignup('apple')}
+            >
+              <Ionicons name="logo-apple" size={24} color="#040707" />
+            </TouchableOpacity>
           </View>
 
-          {/* Sign Up Link */}
-          <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>{t.noAccount} </Text>
-            <TouchableOpacity onPress={onSignup}>
-              <Text style={styles.signupLink}>{t.signUp}</Text>
+          {/* Login Link */}
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>{t.haveAccount} </Text>
+            <TouchableOpacity onPress={onLogin}>
+              <Text style={styles.loginLink}>{t.login}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -393,6 +420,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
+    paddingTop: 40,
     justifyContent: 'center',
   },
   decorCircle: {
@@ -476,23 +504,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   helloText: {
     color: '#ffffff',
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   welcomeText: {
     color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '600',
   },
   card: {
     backgroundColor: '#E7F2F1',
     borderRadius: 32,
-    padding: 32,
+    padding: 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -520,15 +548,14 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
   },
-  loginTitle: {
-    fontSize: 24,
-    color: '#040707',
-    fontWeight: '600',
-    marginBottom: 24,
-    marginTop: 20,
-  },
   inputGroup: {
     marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 8,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -551,18 +578,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#040707',
   },
+  hintText: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    marginTop: 4,
+  },
   errorText: {
     fontSize: 12,
     color: '#ef4444',
     marginTop: 4,
-  },
-  forgotPasswordContainer: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    color: '#07A996',
-    fontSize: 14,
   },
   globalError: {
     flexDirection: 'row',
@@ -586,15 +610,10 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
-  loginButton: {
-    backgroundColor: '#1b4a5a',
-    height: 56,
-    marginTop: 8,
-  },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 20,
   },
   dividerLine: {
     flex: 1,
@@ -611,7 +630,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 16,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   socialButton: {
     width: 56,
@@ -626,18 +645,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  socialButtonLoading: {
-    opacity: 0.7,
-  },
-  signupContainer: {
+  loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
   },
-  signupText: {
+  loginText: {
     color: '#5B5B5B',
     fontSize: 14,
   },
-  signupLink: {
+  loginLink: {
     color: '#07A996',
     fontSize: 14,
     fontWeight: '600',

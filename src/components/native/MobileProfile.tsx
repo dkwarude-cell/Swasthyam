@@ -28,7 +28,7 @@ const familyMembers = [
 ];
 
 const achievements = [
-  { id: 1, title: '10% Oil Reduction', icon: 'target', unlocked: true, points: 100 },
+  { id: 1, title: '10% Oil Reduction', icon: 'analytics', unlocked: true, points: 100 },
   { id: 2, title: '30-Day Streak', icon: 'flame', unlocked: true, points: 150 },
   { id: 3, title: 'Family Champion', icon: 'people', unlocked: true, points: 200 },
   { id: 4, title: 'Health Hero', icon: 'heart', unlocked: true, points: 120 },
@@ -173,6 +173,12 @@ export function MobileProfile({ language, onLogout }: MobileProfileProps) {
             >
               {t.edit}
             </Button>
+
+            {/* Logout Button */}
+            <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
+              <Ionicons name="log-out-outline" size={20} color="#ffffff" />
+              <Text style={styles.logoutButtonText}>{t.logout}</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -493,6 +499,21 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: '#EF4444',
+    fontWeight: '600',
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16,
+    gap: 8,
+  },
+  logoutButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '600',
   },
 });

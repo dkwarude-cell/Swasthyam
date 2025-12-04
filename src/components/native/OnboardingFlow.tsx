@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { AwarenessScreen } from './onboarding/AwarenessScreen';
 import { BasicInfoScreen } from './onboarding/BasicInfoScreen';
 import { MedicalHistoryScreen } from './onboarding/MedicalHistoryScreen';
 import { EatingHabitsScreen } from './onboarding/EatingHabitsScreen';
 import { YourOilScreen } from './onboarding/YourOilScreen';
 import { OilInsightsScreen } from './onboarding/OilInsightsScreen';
+import { useAuth } from '../../context/AuthContext';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -13,6 +14,7 @@ interface OnboardingFlowProps {
 }
 
 export function OnboardingFlow({ onComplete, language }: OnboardingFlowProps) {
+  const { completeOnboarding, isLoading } = useAuth();
   const [currentScreen, setCurrentScreen] = useState(0);
   const [userData, setUserData] = useState<any>({});
 
@@ -49,9 +51,74 @@ export function OnboardingFlow({ onComplete, language }: OnboardingFlowProps) {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     console.log('Onboarding completed with data:', userData);
-    onComplete();
+    
+    // Transform collected data into the format expected by the backend
+    const basicInfo = userData.screen1 || {};
+    const medicalData = userData.screen2 || {};
+    const eatingHabits = userData.screen3 || {};
+    const oilPreferences = userData.screen4 || {};
+    
+    // Transform medical conditions into the required format
+    const medicalHistory = medicalData.medicalConditions 
+      ? Object.entries(medicalData.medicalConditions).map(([condition, severity]) => ({
+          condition,
+          severity: severity as string
+        }))
+      : [];
+    
+    const onboardingData = {
+      // Basic Info
+      name: basicInfo.name || '',
+      age: basicInfo.age ? parseInt(basicInfo.age) : undefined,
+      gender: basicInfo.gender || '',
+      height: basicInfo.height ? parseFloat(basicInfo.height) : undefined,
+      weight: basicInfo.weight ? parseFloat(basicInfo.weight) : undefined,
+      
+      // Medical History
+      medicalHistory,
+      reportType: medicalData.reportType || '',
+      
+      // Eating Habits
+      mealsPerDay: eatingHabits.mealsPerDay || '',
+      frequencyToEatOutside: eatingHabits.outsideEating || '',
+      foodieLevel: eatingHabits.foodieLevel || '',
+      dietaryPreference: eatingHabits.dietType || '',
+      preferredCookingStyle: eatingHabits.cookingStyle || '',
+      
+      // Oil Preferences
+      currentOils: oilPreferences.currentOils || [],
+      monthlyOilConsumption: oilPreferences.monthlyConsumption ? parseFloat(oilPreferences.monthlyConsumption) : undefined,
+      oilBudget: oilPreferences.budget || '',
+    };
+    
+    try {
+      const response = await completeOnboarding(onboardingData);
+      
+      if (response.success) {
+        onComplete();
+      } else {
+        Alert.alert(
+          'Error',
+          response.message || 'Failed to save your data. Please try again.',
+          [
+            { text: 'Retry', onPress: handleComplete },
+            { text: 'Skip', onPress: onComplete }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      Alert.alert(
+        'Error',
+        'An unexpected error occurred. Your data may not have been saved.',
+        [
+          { text: 'Retry', onPress: handleComplete },
+          { text: 'Continue Anyway', onPress: onComplete }
+        ]
+      );
+    }
   };
 
   return (

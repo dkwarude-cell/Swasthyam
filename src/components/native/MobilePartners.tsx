@@ -189,6 +189,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
       {/* Content */}
       {selectedTab === 'partners' ? (
         <FlatList
+          key="partners-list"
           data={partners}
           renderItem={renderPartnerCard}
           keyExtractor={(item) => item.id.toString()}
@@ -197,6 +198,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
         />
       ) : (
         <FlatList
+          key="products-grid"
           data={oilProducts}
           renderItem={renderProductCard}
           keyExtractor={(item) => item.id.toString()}
