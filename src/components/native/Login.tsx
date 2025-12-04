@@ -16,11 +16,20 @@ import { Button } from './Button';
 interface LoginProps {
   onComplete: () => void;
   language: string;
+  onLanguageChange?: (lang: string) => void;
 }
 
-export function Login({ onComplete, language }: LoginProps) {
+export function Login({ onComplete, language, onLanguageChange }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+
+  const languages = [
+    { code: 'en', name: 'English' },
+    { code: 'hi', name: 'हिंदी' },
+  ];
+
+  const currentLanguage = languages.find(l => l.code === language) || languages[0];
 
   const handleLogin = () => {
     onComplete();
@@ -34,7 +43,7 @@ export function Login({ onComplete, language }: LoginProps) {
   const text = {
     en: {
       hello: 'Hello!',
-      welcome: 'Welcome to SwasthTel',
+      welcome: 'Welcome to Swasthyam',
       login: 'Login',
       email: 'Email',
       password: 'Password',
@@ -74,6 +83,48 @@ export function Login({ onComplete, language }: LoginProps) {
         <View style={[styles.decorCircle, styles.decorCircle2]} />
         <View style={[styles.decorCircle, styles.decorCircle3]} />
 
+        {/* Language Selector */}
+        <View style={styles.languageSelector}>
+          <TouchableOpacity
+            style={styles.languageButton}
+            onPress={() => setShowLanguageMenu(!showLanguageMenu)}
+          >
+            <Ionicons name="language" size={18} color="#ffffff" />
+            <Text style={styles.languageText}>{currentLanguage.name}</Text>
+            <Ionicons 
+              name={showLanguageMenu ? "chevron-up" : "chevron-down"} 
+              size={16} 
+              color="#ffffff" 
+            />
+          </TouchableOpacity>
+          
+          {showLanguageMenu && (
+            <View style={styles.languageMenu}>
+              {languages.map((lang) => (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={[
+                    styles.languageMenuItem,
+                    language === lang.code && styles.languageMenuItemActive
+                  ]}
+                  onPress={() => {
+                    onLanguageChange?.(lang.code);
+                    setShowLanguageMenu(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.languageMenuText,
+                    language === lang.code && styles.languageMenuTextActive
+                  ]}>{lang.name}</Text>
+                  {language === lang.code && (
+                    <Ionicons name="checkmark" size={18} color="#07A996" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.helloText}>{t.hello}</Text>
@@ -84,7 +135,11 @@ export function Login({ onComplete, language }: LoginProps) {
         <View style={styles.card}>
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <Ionicons name="water" size={40} color="#1b4a5a" />
+            <Image
+              source={require('../../../assets/icon.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
 
           <Text style={styles.loginTitle}>{t.login}</Text>
@@ -214,6 +269,58 @@ const styles = StyleSheet.create({
     backgroundColor: '#E7F2F1',
     opacity: 0.25,
   },
+  languageSelector: {
+    alignSelf: 'flex-end',
+    marginBottom: 16,
+    zIndex: 100,
+  },
+  languageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  languageText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  languageMenu: {
+    position: 'absolute',
+    top: 45,
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  languageMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  languageMenuItemActive: {
+    backgroundColor: '#E7F2F1',
+  },
+  languageMenuText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#040707',
+  },
+  languageMenuTextActive: {
+    color: '#07A996',
+    fontWeight: '600',
+  },
   header: {
     marginBottom: 32,
   },
@@ -253,6 +360,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: 60,
+    height: 60,
   },
   loginTitle: {
     fontSize: 24,

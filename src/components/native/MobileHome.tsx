@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,10 @@ import {
   StyleSheet,
   Dimensions,
   Image,
+  SafeAreaView,
+  Platform,
+  StatusBar,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -25,6 +29,33 @@ export function MobileHome({ language }: MobileHomeProps) {
   const navigation = useNavigation<any>();
   const [selectedDate, setSelectedDate] = useState(15);
   const [hasNotification, setHasNotification] = useState(true);
+
+  // Speech bubble text animation
+  const speechText = "Good job, Priya! You've stayed within your oil limit today";
+  const scrollX = useRef(new Animated.Value(0)).current;
+  
+  useEffect(() => {
+    const animateText = () => {
+      scrollX.setValue(0);
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(2000),
+          Animated.timing(scrollX, {
+            toValue: -100,
+            duration: 5000,
+            useNativeDriver: true,
+          }),
+          Animated.delay(1000),
+          Animated.timing(scrollX, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    };
+    animateText();
+  }, []);
 
   const userName = "Priya";
   const currentDate = "29 November, 2025";
@@ -57,12 +88,22 @@ export function MobileHome({ language }: MobileHomeProps) {
     en: {
       welcome: 'Welcome',
       today: 'Today',
+      todaysOilUsage: "Today's Oil Usage",
       oilConsumption: 'Oil Consumption',
       dailyOilConsumption: 'Daily Oil Consumption',
       dailyLimit: 'Daily Limit',
       healthRisk: 'Health Risk Level',
+      healthRiskLevel: 'Health Risk Level',
       lowRisk: 'Low Risk',
       scanFood: 'Scan Food',
+      oilMonitoring: 'Oil Monitoring',
+      logOil: 'Log Oil',
+      trackYourUsage: 'Track your usage',
+      oilScan: 'Oil Scan',
+      scanMealOrProduct: 'Scan meal or product',
+      nationalCampaign: 'National Campaign',
+      viewAll: 'View All',
+      official: 'Official',
       quickActions: 'Quick Actions',
       oilTracker: 'Oil Tracker',
       recipes: 'Recipes',
@@ -74,12 +115,22 @@ export function MobileHome({ language }: MobileHomeProps) {
     hi: {
       welcome: 'स्वागत है',
       today: 'आज',
+      todaysOilUsage: 'आज का तेल उपयोग',
       oilConsumption: 'तेल की खपत',
       dailyOilConsumption: 'दैनिक तेल की खपत',
       dailyLimit: 'दैनिक सीमा',
       healthRisk: 'स्वास्थ्य जोखिम स्तर',
+      healthRiskLevel: 'स्वास्थ्य जोखिम स्तर',
       lowRisk: 'कम जोखिम',
       scanFood: 'भोजन स्कैन करें',
+      oilMonitoring: 'तेल निगरानी',
+      logOil: 'तेल लॉग करें',
+      trackYourUsage: 'अपना उपयोग ट्रैक करें',
+      oilScan: 'तेल स्कैन',
+      scanMealOrProduct: 'भोजन या उत्पाद स्कैन करें',
+      nationalCampaign: 'राष्ट्रीय अभियान',
+      viewAll: 'सभी देखें',
+      official: 'आधिकारिक',
       quickActions: 'त्वरित कार्रवाई',
       oilTracker: 'तेल ट्रैकर',
       recipes: 'व्यंजन',
@@ -97,7 +148,8 @@ export function MobileHome({ language }: MobileHomeProps) {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Daily Oil Consumption Chart Section */}
       <View style={styles.chartSection}>
         <Text style={styles.chartTitle}>{t.dailyOilConsumption}</Text>
@@ -105,7 +157,7 @@ export function MobileHome({ language }: MobileHomeProps) {
         <View style={styles.chartContainer}>
           {/* Chart */}
           <View style={styles.chartWrapper}>
-            <Svg width={width * 0.65} height={150} viewBox="0 0 280 140">
+            <Svg width={width * 0.58} height={150} viewBox="0 0 280 90">
               {/* Grid lines */}
               <Line x1="20" y1="20" x2="20" y2="110" stroke="#3d6b7a" strokeWidth="1" strokeDasharray="2,2" />
               <Line x1="20" y1="110" x2="270" y2="110" stroke="#3d6b7a" strokeWidth="1" />
@@ -156,53 +208,71 @@ export function MobileHome({ language }: MobileHomeProps) {
           
           {/* Super Nani Character */}
           <View style={styles.naniContainer}>
-            <Image
-              source={require('../../assets/mascot_home.png')}
-              style={styles.naniImage}
-              resizeMode="contain"
-            />
+            <View style={styles.naniBox}>
+              <Image
+                source={require('../../assets/mascot_home.png')}
+                style={styles.naniImage}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+          
+          {/* Speech Bubble - Absolute positioned */}
+          <View style={styles.naniSpeechBubble}>
+            <View style={styles.naniSpeechTextContainer}>
+              <Animated.Text 
+                style={[
+                  styles.naniSpeechText,
+                  { transform: [{ translateX: scrollX }] }
+                ]}
+                numberOfLines={1}
+              >
+                {speechText}
+              </Animated.Text>
+            </View>
+            <View style={styles.naniSpeechArrow} />
           </View>
         </View>
-      </View>
-
-      {/* Info Card with Calendar */}
-      <View style={styles.infoCard}>
-        <View style={styles.infoLeft}>
-          <Text style={styles.infoText}>{t.savesOil} • 8 {t.servings}</Text>
+      {/* Combined Calendar Container */}
+      <View style={styles.calendarContainer}>
+        {/* Info Card with Calendar */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoLeft}>
+            <Text style={styles.infoText}>{t.savesOil} • 8 {t.servings}</Text>
+          </View>
+          <View style={styles.infoRight}>
+            <TouchableOpacity>
+              <Ionicons name="chevron-back" size={16} color="#ffffff" />
+            </TouchableOpacity>
+            <Text style={styles.monthText}>November 2025</Text>
+            <TouchableOpacity>
+              <Ionicons name="chevron-forward" size={16} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={styles.infoRight}>
-          <TouchableOpacity>
-            <Ionicons name="chevron-back" size={16} color="#1b4a5a" />
-          </TouchableOpacity>
-          <Text style={styles.monthText}>November 2025</Text>
-          <TouchableOpacity>
-            <Ionicons name="chevron-forward" size={16} color="#1b4a5a" />
-          </TouchableOpacity>
-        </View>
-      </View>
 
-      {/* Week Calendar */}
-      <View style={styles.calendarCard}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.calendarContent}
-        >
-          {weekDates.map((item) => (
-            <TouchableOpacity
-              key={item.date}
-              style={[
-                styles.dateCard,
-                selectedDate === item.date && styles.dateCardActive,
-              ]}
-              onPress={() => setSelectedDate(item.date)}
-            >
-              <Text
+        {/* Week Calendar */}
+        <View style={styles.calendarCard}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.calendarContent}
+          >
+            {weekDates.map((item) => (
+              <TouchableOpacity
+                key={item.date}
                 style={[
-                  styles.dayText,
-                  selectedDate === item.date && styles.dayTextActive,
+                  styles.dateCard,
+                  selectedDate === item.date && styles.dateCardActive,
                 ]}
+                onPress={() => setSelectedDate(item.date)}
               >
+                <Text
+                  style={[
+                    styles.dayText,
+                    selectedDate === item.date && styles.dayTextActive,
+                  ]}
+                >
                 {item.day}
               </Text>
               <Text
@@ -216,92 +286,180 @@ export function MobileHome({ language }: MobileHomeProps) {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        </View>
+      </View>
       </View>
 
-      {/* Oil Consumption Card */}
-      <Card style={styles.card}>
-        <CardContent style={styles.cardContent}>
-          <View style={styles.consumptionHeader}>
-            <Ionicons name="water" size={24} color="#1b4a5a" />
-            <Text style={styles.cardTitle}>{t.oilConsumption}</Text>
+
+      {/* Today's Oil Usage Card with Action Buttons */}
+      <View style={styles.usageCardWrapper}>
+        <View style={styles.usageCard}>
+          <View style={styles.usageHeader}>
+            <Text style={styles.usageTitle}>{t.todaysOilUsage}</Text>
+            <Text style={styles.usageValue}>{dailyConsumption}ml / {dailyLimit}ml</Text>
           </View>
+          <View style={styles.progressBarContainer}>
+            <View style={[styles.progressBarFill, { width: `${(dailyConsumption / dailyLimit) * 100}%` }]} />
+          </View>
+        </View>
+        
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="search" size={22} color="#1b4a5a" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="notifications" size={22} color="#1b4a5a" />
+            {hasNotification && <View style={styles.notificationBadge} />}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Health Risk Level Card */}
+      <View style={styles.riskCard}>
+        <Text style={styles.riskTitle}>{t.healthRiskLevel}</Text>
+        <View style={styles.riskProgressContainer}>
+          <Svg width="100%" height={10} style={styles.riskProgressBar}>
+            <Defs>
+              <LinearGradient id="riskGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <Stop offset="0%" stopColor="#7ed321" />
+                <Stop offset="50%" stopColor="#f5a623" />
+                <Stop offset="100%" stopColor="#ff6b6b" />
+              </LinearGradient>
+            </Defs>
+            {/* Background bar */}
+            <Path
+              d={`M5,0 L${width - 85},0 Q${width - 80},0 ${width - 80},5 L${width - 80},5 Q${width - 80},10 ${width - 85},10 L5,10 Q0,10 0,5 L0,5 Q0,0 5,0 Z`}
+              fill="#e8e8e8"
+            />
+            {/* Gradient fill */}
+            <Path
+              d={`M5,0 L${((width - 80) * healthRiskLevel) / 100 - 5},0 Q${((width - 80) * healthRiskLevel) / 100},0 ${((width - 80) * healthRiskLevel) / 100},5 L${((width - 80) * healthRiskLevel) / 100},5 Q${((width - 80) * healthRiskLevel) / 100},10 ${((width - 80) * healthRiskLevel) / 100 - 5},10 L5,10 Q0,10 0,5 L0,5 Q0,0 5,0 Z`}
+              fill="url(#riskGradient)"
+            />
+          </Svg>
+        </View>
+      </View>
+
+      {/* Oil Monitoring Section */}
+      <View style={styles.monitoringSection}>
+        <View style={styles.monitoringHeader}>
+          <Text style={styles.monitoringTitle}>{t.oilMonitoring}</Text>
+          <View style={styles.monitoringIcons}>
+            <TouchableOpacity>
+              <Ionicons name="shuffle" size={20} color="#1b4a5a" />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Ionicons name="ellipsis-horizontal" size={20} color="#1b4a5a" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        <View style={styles.monitoringCards}>
+          {/* Log Oil Card */}
+          <TouchableOpacity style={styles.monitoringCard} onPress={handleScanFood}>
+            <View style={styles.monitoringIconContainer}>
+              <Ionicons name="add" size={32} color="#ffffff" />
+            </View>
+            <Text style={styles.monitoringCardTitle}>{t.logOil}</Text>
+            <Text style={styles.monitoringCardSubtitle}>{t.trackYourUsage}</Text>
+          </TouchableOpacity>
           
-          <View style={styles.consumptionStats}>
-            <Text style={styles.consumptionValue}>{dailyConsumption} ml</Text>
-            <Text style={styles.consumptionLimit}>/ {dailyLimit} ml</Text>
-          </View>
+          {/* Oil Scan Card */}
+          <TouchableOpacity style={styles.monitoringCard} onPress={handleScanFood}>
+            <View style={[styles.monitoringIconContainer, styles.cameraIconContainer]}>
+              <Ionicons name="camera" size={28} color="#07A996" />
+            </View>
+            <Text style={styles.monitoringCardTitle}>{t.oilScan}</Text>
+            <Text style={styles.monitoringCardSubtitle}>{t.scanMealOrProduct}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-          <Progress
-            value={(dailyConsumption / dailyLimit) * 100}
-            style={styles.progress}
-          />
-
-          <View style={styles.riskContainer}>
-            <Text style={styles.riskLabel}>{t.healthRisk}</Text>
-            <Badge variant="success" style={styles.riskBadge}>
-              {t.lowRisk} ({healthRiskLevel}%)
-            </Badge>
-          </View>
-        </CardContent>
-      </Card>
-
-      {/* Scan Food Button */}
-      <TouchableOpacity style={styles.scanButton} onPress={handleScanFood}>
-        <Ionicons name="camera" size={24} color="#ffffff" />
-        <Text style={styles.scanButtonText}>{t.scanFood}</Text>
-      </TouchableOpacity>
-
-      {/* Quick Actions */}
-      <Text style={styles.sectionTitle}>{t.quickActions}</Text>
-      <View style={styles.quickActions}>
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => navigation.navigate('OilTracker')}
+      {/* National Campaign */}
+      <View style={styles.campaignSection}>
+        <View style={styles.campaignHeader}>
+          <Text style={styles.campaignTitle}>{t.nationalCampaign}</Text>
+          <TouchableOpacity style={styles.viewAllButton}>
+            <Text style={styles.viewAllText}>{t.viewAll}</Text>
+            <Ionicons name="chevron-forward" size={16} color="#07A996" />
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.campaignCarousel}
         >
-          <View style={styles.actionIcon}>
-            <Ionicons name="analytics" size={28} color="#1b4a5a" />
-          </View>
-          <Text style={styles.actionText}>{t.oilTracker}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => navigation.navigate('Recipes')}
-        >
-          <View style={styles.actionIcon}>
-            <Ionicons name="restaurant" size={28} color="#1b4a5a" />
-          </View>
-          <Text style={styles.actionText}>{t.recipes}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => navigation.navigate('Challenges')}
-        >
-          <View style={styles.actionIcon}>
-            <Ionicons name="trophy" size={28} color="#1b4a5a" />
-          </View>
-          <Text style={styles.actionText}>{t.challenges}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => navigation.navigate('Education')}
-        >
-          <View style={styles.actionIcon}>
-            <Ionicons name="book" size={28} color="#1b4a5a" />
-          </View>
-          <Text style={styles.actionText}>{t.education}</Text>
-        </TouchableOpacity>
+          {/* Campaign Card 1 - Mann ki Baat */}
+          <TouchableOpacity style={styles.campaignCard}>
+            <Image
+              source={require('../../assets/carousel1.png')}
+              style={styles.campaignImage}
+              resizeMode="cover"
+            />
+            <View style={styles.campaignOverlay}>
+              <View style={styles.officialBadge}>
+                <Text style={styles.officialText}>{t.official}</Text>
+              </View>
+              <View style={styles.campaignContent}>
+                <Text style={styles.campaignCardTitle}>Mann ki Baat</Text>
+                <Text style={styles.campaignCardSubtitle}>PM Modi's Health Message - 23 Feb, 2025</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+          
+          {/* Campaign Card 2 - Placeholder */}
+          <TouchableOpacity style={styles.campaignCard}>
+            <Image
+              source={require('../../assets/carousel2.png')}
+              style={styles.campaignImage}
+              resizeMode="cover"
+            />
+            <View style={styles.campaignOverlay}>
+              <View style={styles.officialBadge}>
+                <Text style={styles.officialText}>{t.official}</Text>
+              </View>
+              <View style={styles.campaignContent}>
+                <Text style={styles.campaignCardTitle}>Cutting Edge</Text>
+                <Text style={styles.campaignCardSubtitle}>PM Modi's Oil Consumption Initiative</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+          
+          {/* Campaign Card 3 - Placeholder */}
+          <TouchableOpacity style={styles.campaignCard}>
+            <Image
+              source={require('../../assets/carousel3.png')}
+              style={styles.campaignImage}
+              resizeMode="cover"
+            />
+            <View style={styles.campaignOverlay}>
+              <View style={styles.officialBadge}>
+                <Text style={styles.officialText}>{t.official}</Text>
+              </View>
+              <View style={styles.campaignContent}>
+                <Text style={styles.campaignCardTitle}>Health India</Text>
+                <Text style={styles.campaignCardSubtitle}>National Health Campaign 2025</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#1b4a5a',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fafbfa',
+    backgroundColor: '#ffffffff',
   },
   header: {
     flexDirection: 'row',
@@ -318,6 +476,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 14,
     color: '#5B5B5B',
+    //backgroundColor: '#000000ff',
     marginTop: 4,
   },
   notificationDot: {
@@ -333,35 +492,38 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   calendarContent: {
-    paddingHorizontal: 20,
-    gap: 12,
+    paddingHorizontal: 10,
+    gap: 0,
   },
   dateCard: {
-    width: 60,
-    paddingVertical: 12,
+    width: 58,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderRadius: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     marginRight: 8,
   },
   dateCardActive: {
-    backgroundColor: '#1b4a5a',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
   },
   dayText: {
     fontSize: 12,
-    color: '#5B5B5B',
+    color: '#ffffff',
     marginBottom: 4,
+    fontWeight: '500',
   },
   dayTextActive: {
-    color: '#ffffff',
+    color: '#07A996',
   },
   dateNumber: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#040707',
+    color: '#ffffff',
   },
   dateNumberActive: {
-    color: '#ffffff',
+    color: '#07A996',
   },
   card: {
     marginHorizontal: 20,
@@ -412,111 +574,239 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  scanButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#07A996',
+  // Oil Monitoring Section Styles
+  monitoringSection: {
     marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 16,
     marginBottom: 24,
   },
-  scanButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 8,
+  monitoringHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  sectionTitle: {
+  monitoringTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#040707',
-    marginHorizontal: 20,
-    marginBottom: 16,
   },
-  quickActions: {
+  monitoringIcons: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 20,
+    gap: 16,
+  },
+  monitoringCards: {
+    flexDirection: 'row',
     gap: 12,
-    marginBottom: 24,
   },
-  actionCard: {
-    width: (width - 52) / 2,
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+  monitoringCard: {
+    flex: 1,
+    backgroundColor: '#1b4a5a',
+    borderRadius: 20,
     padding: 20,
-    alignItems: 'center',
+    minHeight: 180,
   },
-  actionIcon: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#E7F2F1',
-    borderRadius: 30,
+  monitoringIconContainer: {
+    width: 56,
+    height: 56,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 20,
   },
-  actionText: {
-    fontSize: 14,
+  cameraIconContainer: {
+    backgroundColor: '#ffffff',
+  },
+  monitoringCardTitle: {
+    fontSize: 18,
     fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  monitoringCardSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
+  },
+  // National Campaign Styles
+  campaignSection: {
+    marginBottom: 24,
+  },
+  campaignHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  campaignTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#040707',
-    textAlign: 'center',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#07A996',
+    fontWeight: '600',
+  },
+  campaignCarousel: {
+    paddingLeft: 20,
+    paddingRight: 20,
+    gap: 16,
+  },
+  campaignCard: {
+    width: width * 0.75,
+    height: 200,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#1b4a5a',
+  },
+  campaignImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  campaignOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    padding: 20,
+    justifyContent: 'space-between',
+  },
+  officialBadge: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#07A996',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  officialText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  campaignContent: {
+    gap: 4,
+  },
+  campaignCardTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  campaignCardSubtitle: {
+    fontSize: 14,
+    color: '#ffffff',
+    opacity: 0.9,
   },
   // Chart Section Styles
   chartSection: {
     backgroundColor: '#1b4a5a',
-    paddingTop: 10,
+    paddingTop: 5,
     paddingLeft: 0,
     paddingRight: 10,
-    paddingBottom: 30,
+    paddingBottom: 5,
+    borderBottomLeftRadius: 35,
+    borderBottomRightRadius: 35,
   },
   chartTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: -15,
-    paddingLeft: 15,
+    marginBottom: -10,
+    paddingLeft: 20,
   },
   chartContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: width * 0.025,
+    paddingRight: width * 0.05,
+    minHeight: 150,
+    position: 'relative',
   },
   chartWrapper: {
-    width: '65%',
-    marginLeft: 0,
+    flex: 0.6,
   },
   naniContainer: {
-    width: '35%',
-    height: 190,
-    marginLeft: -10,
-    marginBottom: 5,
+    flex: 0.4,
+    height: 160,
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    marginRight: 0,
+    marginTop: -10,
+  },
+  naniSpeechBubble: {
+    position: 'absolute',
+    right: width * 0.35,
+    top: 20,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 5,
+    width: width * 0.25,
+    zIndex: 100,
+    overflow: 'hidden',
+  },
+  naniSpeechTextContainer: {
+    overflow: 'hidden',
+  },
+  naniSpeechText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#1b4a5a',
+    textAlign: 'left',
+    width: 200,
+  },
+
+  naniBox: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+    padding: 5,
+    width: width * 0.35,
+    maxWidth: 140,
+    height: 150,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   naniImage: {
-    width: '110%',
-    height: '110%',
+    width: width * 0.38,
+    maxWidth: 150,
+    height: 150,
+  },
+  // Calendar Container Styles
+  calendarContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: 20,
+    marginTop: 0,
+    borderRadius: 20,
+    marginBottom: 15,
   },
   // Info Card Styles
   infoCard: {
-    backgroundColor: '#c8dde3',
-    marginHorizontal: 20,
-    marginTop: -25,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: 'rgba(27, 74, 90, 0.6)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   infoLeft: {
     flex: 1,
   },
   infoText: {
     fontSize: 15,
-    color: '#1b4a5a',
+    color: '#ffffff',
     fontWeight: '500',
   },
   infoRight: {
@@ -526,17 +816,103 @@ const styles = StyleSheet.create({
   },
   monthText: {
     fontSize: 14,
-    color: '#1b4a5a',
+    color: '#ffffff',
     fontWeight: '600',
   },
   // Calendar Card Styles
   calendarCard: {
-    backgroundColor: '#c8dde3',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+
+  },
+  // Usage Card Styles
+  usageCardWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 16,
+    gap: 12,
+  },
+  usageCard: {
+    flex: 1,
+    backgroundColor: '#fef5e7',
+    padding: 20,
+    borderRadius: 20,
+  },
+  usageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  usageTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+  },
+  usageValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+  },
+  progressBarContainer: {
+    height: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#f5a623',
+    borderRadius: 10,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    backgroundColor: '#ff6b6b',
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+  },
+  // Risk Card Styles
+  riskCard: {
+    backgroundColor: '#fef5e7',
+    marginHorizontal: 20,
     marginBottom: 20,
+    padding: 20,
+    borderRadius: 20,
+  },
+  riskTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 12,
+  },
+  riskProgressContainer: {
+    position: 'relative',
+  },
+  riskProgressBar: {
+    borderRadius: 10,
   },
 });

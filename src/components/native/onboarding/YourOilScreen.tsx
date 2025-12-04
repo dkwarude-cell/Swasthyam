@@ -7,9 +7,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
 
 interface YourOilScreenProps {
   onNext: (data: any) => void;
@@ -25,6 +28,7 @@ interface OilProduct {
   type: string;
   volume: string;
   barcode?: string;
+  imageUri?: string;
 }
 
 export function YourOilScreen({ onNext, onSkip, onBack, language }: YourOilScreenProps) {
@@ -36,18 +40,84 @@ export function YourOilScreen({ onNext, onSkip, onBack, language }: YourOilScree
     type: '',
     volume: ''
   });
+  const [isScanning, setIsScanning] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
 
-  const handleScanBarcode = () => {
-    // Mock barcode scan - simulates scanning
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Camera Permission Required',
+        'Please allow camera access to scan oil barcodes.',
+        [{ text: 'OK' }]
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const handleScanBarcode = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return;
+
+    setIsScanning(true);
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        setCapturedImage(imageUri);
+        
+        // Simulate uploading and processing the image
+        await processScannedImage(imageUri, result.assets[0].base64);
+      }
+    } catch (error) {
+      console.error('Error capturing image:', error);
+      Alert.alert('Error', 'Failed to capture image. Please try again.');
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const processScannedImage = async (imageUri: string, base64Data?: string | null) => {
+    // Show processing indicator
+    Alert.alert(
+      'Processing',
+      'Analyzing oil bottle image...',
+      [],
+      { cancelable: false }
+    );
+
+    // Simulate API call delay for image processing
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Mock barcode/product detection from image
+    // In production, this would call your backend API with the image
     const mockProducts = [
       { id: '1', name: 'Fortune Rice Bran Oil', brand: 'Fortune', type: 'Rice Bran', volume: '5L', barcode: '8901234567890' },
       { id: '2', name: 'Saffola Gold Oil', brand: 'Saffola', type: 'Blended', volume: '5L', barcode: '8901234567891' },
-      { id: '3', name: 'Sundrop Heart Oil', brand: 'Sundrop', type: 'Sunflower', volume: '5L', barcode: '8901234567892' }
+      { id: '3', name: 'Sundrop Heart Oil', brand: 'Sundrop', type: 'Sunflower', volume: '5L', barcode: '8901234567892' },
+      { id: '4', name: 'Dhara Mustard Oil', brand: 'Dhara', type: 'Mustard', volume: '1L', barcode: '8901234567893' },
+      { id: '5', name: 'Patanjali Groundnut Oil', brand: 'Patanjali', type: 'Groundnut', volume: '2L', barcode: '8901234567894' },
     ];
     
     const scannedProduct = mockProducts[Math.floor(Math.random() * mockProducts.length)];
-    setOilProducts(prev => [...prev, { ...scannedProduct, id: Date.now().toString() }]);
-    Alert.alert('Success', `Added ${scannedProduct.name}`);
+    
+    // Clear the processing alert and show success
+    setOilProducts(prev => [...prev, { ...scannedProduct, id: Date.now().toString(), imageUri }]);
+    setCapturedImage(null);
+    
+    Alert.alert(
+      'Product Found!',
+      `Successfully identified: ${scannedProduct.name}\n\nThe product has been added to your list.`,
+      [{ text: 'Great!' }]
+    );
   };
 
   const handleAddManual = () => {
@@ -99,12 +169,27 @@ export function YourOilScreen({ onNext, onSkip, onBack, language }: YourOilScree
 
         {/* Scan Barcode Button */}
         <TouchableOpacity
-          style={styles.scanButton}
+          style={[styles.scanButton, isScanning && styles.scanButtonDisabled]}
           onPress={handleScanBarcode}
+          disabled={isScanning}
         >
-          <Ionicons name="scan" size={24} color="#ffffff" />
-          <Text style={styles.scanButtonText}>Scan Oil Barcode</Text>
+          {isScanning ? (
+            <>
+              <ActivityIndicator size="small" color="#ffffff" />
+              <Text style={styles.scanButtonText}>Opening Camera...</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="camera" size={24} color="#ffffff" />
+              <Text style={styles.scanButtonText}>Scan Oil Barcode</Text>
+            </>
+          )}
         </TouchableOpacity>
+        
+        <Text style={styles.scanHint}>
+          <Ionicons name="information-circle-outline" size={14} color="#5B5B5B" /> 
+          {' '}Point camera at oil bottle label or barcode
+        </Text>
 
         {/* Manual Add Button */}
         <TouchableOpacity
@@ -193,15 +278,28 @@ export function YourOilScreen({ onNext, onSkip, onBack, language }: YourOilScree
             <Text style={styles.productsTitle}>Added Oils ({oilProducts.length})</Text>
             {oilProducts.map((product) => (
               <View key={product.id} style={styles.productCard}>
-                <View style={styles.productIcon}>
-                  <Ionicons name="water" size={24} color="#fcaf56" />
-                </View>
+                {product.imageUri ? (
+                  <Image 
+                    source={{ uri: product.imageUri }} 
+                    style={styles.productImage}
+                  />
+                ) : (
+                  <View style={styles.productIcon}>
+                    <Ionicons name="water" size={24} color="#fcaf56" />
+                  </View>
+                )}
                 <View style={styles.productInfo}>
                   <Text style={styles.productName}>{product.name}</Text>
                   <Text style={styles.productDetails}>{product.brand} • {product.type}</Text>
                   <Text style={styles.productVolume}>Volume: {product.volume}</Text>
                   {product.barcode && (
                     <Text style={styles.productBarcode}>Barcode: {product.barcode}</Text>
+                  )}
+                  {product.imageUri && (
+                    <View style={styles.scannedBadge}>
+                      <Ionicons name="camera" size={10} color="#07A996" />
+                      <Text style={styles.scannedBadgeText}>Scanned</Text>
+                    </View>
                   )}
                 </View>
                 <TouchableOpacity
@@ -312,7 +410,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1b4a5a',
     paddingVertical: 24,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 8,
     gap: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -320,10 +418,19 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  scanButtonDisabled: {
+    opacity: 0.7,
+  },
   scanButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  scanHint: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    textAlign: 'center',
+    marginBottom: 16,
   },
   addButton: {
     flexDirection: 'row',
@@ -433,6 +540,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  productImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+  },
   productInfo: {
     flex: 1,
   },
@@ -456,6 +568,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#5B5B5B',
     marginTop: 4,
+  },
+  scannedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(7, 169, 150, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
+  scannedBadgeText: {
+    fontSize: 10,
+    color: '#07A996',
+    fontWeight: '600',
   },
   deleteButton: {
     width: 32,

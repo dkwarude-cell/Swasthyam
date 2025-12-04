@@ -84,7 +84,7 @@ function MainTabs({ language, onLogout }: any) {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: '#ffffffff',
           borderTopWidth: 1,
           borderTopColor: '#e5e5e5',
           elevation: 8,
@@ -97,8 +97,8 @@ function MainTabs({ language, onLogout }: any) {
           paddingTop: 8,
           paddingHorizontal: 10,
         },
-        tabBarActiveTintColor: '#1b4a5a',
-        tabBarInactiveTintColor: '#888888',
+        tabBarActiveTintColor: '#ffffffff',
+        tabBarInactiveTintColor: '#1d1d1dff',
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '500',
@@ -114,8 +114,8 @@ function MainTabs({ language, onLogout }: any) {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? tabStyles.activeTabBackground : undefined}>
-              <Ionicons name={focused ? "home" : "home-outline"} size={24} color={focused ? '#1b4a5a' : color} />
+            <View style={focused ? tabStyles.activeTabBackground : tabStyles.inactiveTabBackground}>
+              <Ionicons name={focused ? "home" : "home-outline"} size={24} color={focused ? '#ffffff' : color} />
             </View>
           ),
         }}
@@ -128,8 +128,8 @@ function MainTabs({ language, onLogout }: any) {
         options={{
           title: 'Community',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? tabStyles.activeTabBackground : undefined}>
-              <Ionicons name={focused ? "people" : "people-outline"} size={24} color={focused ? '#1b4a5a' : color} />
+            <View style={focused ? tabStyles.activeTabBackground : tabStyles.inactiveTabBackground}>
+              <Ionicons name={focused ? "people" : "people-outline"} size={24} color={focused ? '#ffffff' : color} />
             </View>
           ),
         }}
@@ -166,8 +166,8 @@ function MainTabs({ language, onLogout }: any) {
         options={{
           title: 'Partners',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? tabStyles.activeTabBackground : undefined}>
-              <Ionicons name={focused ? "storefront" : "storefront-outline"} size={24} color={focused ? '#1b4a5a' : color} />
+            <View style={focused ? tabStyles.activeTabBackground : tabStyles.inactiveTabBackground}>
+              <Ionicons name={focused ? "storefront" : "storefront-outline"} size={24} color={focused ? '#ffffff' : color} />
             </View>
           ),
         }}
@@ -180,8 +180,8 @@ function MainTabs({ language, onLogout }: any) {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? tabStyles.activeTabBackground : undefined}>
-              <Ionicons name={focused ? "person" : "person-outline"} size={24} color={focused ? '#1b4a5a' : color} />
+            <View style={focused ? tabStyles.activeTabBackground : tabStyles.inactiveTabBackground}>
+              <Ionicons name={focused ? "person" : "person-outline"} size={24} color={focused ? '#ffffff' : color} />
             </View>
           ),
         }}
@@ -195,16 +195,28 @@ function MainTabs({ language, onLogout }: any) {
 // Tab bar specific styles
 const tabStyles = StyleSheet.create({
   activeTabBackground: {
-    backgroundColor: '#e8f4f8',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: '#1b4a5a',
+    width: 65,
+    height: 55,
+    marginBottom: -15,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inactiveTabBackground: {
+    backgroundColor: 'transparent',
+    width: 65,
+    height: 55,
+    marginBottom: -15,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   centerButton: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 30,
+    width: 80,
+    height: 80,
+    backgroundColor: '#ffffffff',
+    borderRadius: 80,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: -25,
@@ -215,8 +227,8 @@ const tabStyles = StyleSheet.create({
     elevation: 4,
   },
   centerLogo: {
-    width: 40,
-    height: 48,
+    width: 70,
+    height: 70,
   },
 });
 
@@ -379,6 +391,7 @@ export function AppNavigator() {
                 {...props}
                 onComplete={() => setIsLoggedIn(true)}
                 language={selectedLanguage}
+                onLanguageChange={setSelectedLanguage}
               />
             )}
           </Stack.Screen>
