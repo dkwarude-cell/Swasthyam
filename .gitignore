@@ -50,3 +50,19 @@ logs
 build/
 android/
 ios/
+
+# Data folder (oil datasets, recipes)
+data/
+
+# Recipe controller and routes
+backend/controllers/recipeController.js
+backend/routes/recipes.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pkl
+
+# Backend
+backend/node_modules/

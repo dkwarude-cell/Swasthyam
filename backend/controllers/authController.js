@@ -511,6 +511,177 @@ const socialAuth = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * @desc    Search users by email or name
+ * @route   GET /api/auth/search-users
+ * @access  Private
+ */
+const searchUsers = asyncHandler(async (req, res) => {
+  const { query } = req.query;
+  
+  if (!query || query.length < 2) {
+    return res.status(400).json({
+      success: false,
+      message: 'Search query must be at least 2 characters'
+    });
+  }
+  
+  // Search by email or name, exclude current user
+  const users = await User.find({
+    _id: { $ne: req.user._id },
+    $or: [
+      { email: { $regex: query, $options: 'i' } },
+      { name: { $regex: query, $options: 'i' } }
+    ]
+  })
+  .select('_id email name avatar')
+  .limit(10);
+  
+  res.json({
+    success: true,
+    users: users.map(u => ({
+      _id: u._id,
+      email: u.email,
+      name: u.name || 'Unknown',
+      avatar: u.avatar
+    }))
+  });
+});
+
+/**
+ * @desc    Add family member
+ * @route   POST /api/auth/family
+ * @access  Private
+ */
+const addFamilyMember = asyncHandler(async (req, res) => {
+  const { userId, relation } = req.body;
+  
+  if (!userId || !relation) {
+    return res.status(400).json({
+      success: false,
+      message: 'User ID and relation are required'
+    });
+  }
+  
+  const validRelations = ['spouse', 'parent', 'child', 'sibling', 'other'];
+  if (!validRelations.includes(relation)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid relation type'
+    });
+  }
+  
+  // Check if user exists
+  const memberToAdd = await User.findById(userId);
+  if (!memberToAdd) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found'
+    });
+  }
+  
+  // Get current user
+  const user = await User.findById(req.user._id);
+  
+  // Check if already a family member
+  const alreadyMember = user.familyMembers?.some(
+    member => member.user.toString() === userId
+  );
+  
+  if (alreadyMember) {
+    return res.status(400).json({
+      success: false,
+      message: 'User is already a family member'
+    });
+  }
+  
+  // Add family member
+  if (!user.familyMembers) {
+    user.familyMembers = [];
+  }
+  
+  user.familyMembers.push({
+    user: userId,
+    relation,
+    addedAt: new Date()
+  });
+  
+  await user.save();
+  
+  // Get updated user with populated family members
+  const updatedUser = await User.findById(req.user._id)
+    .populate('familyMembers.user', '_id email name avatar');
+  
+  res.json({
+    success: true,
+    message: 'Family member added successfully',
+    user: updatedUser.toPublicJSON()
+  });
+});
+
+/**
+ * @desc    Remove family member
+ * @route   DELETE /api/auth/family/:userId
+ * @access  Private
+ */
+const removeFamilyMember = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  
+  const user = await User.findById(req.user._id);
+  
+  if (!user.familyMembers || user.familyMembers.length === 0) {
+    return res.status(404).json({
+      success: false,
+      message: 'No family members found'
+    });
+  }
+  
+  const memberIndex = user.familyMembers.findIndex(
+    member => member.user.toString() === userId
+  );
+  
+  if (memberIndex === -1) {
+    return res.status(404).json({
+      success: false,
+      message: 'Family member not found'
+    });
+  }
+  
+  user.familyMembers.splice(memberIndex, 1);
+  await user.save();
+  
+  res.json({
+    success: true,
+    message: 'Family member removed successfully',
+    user: user.toPublicJSON()
+  });
+});
+
+/**
+ * @desc    Get family members
+ * @route   GET /api/auth/family
+ * @access  Private
+ */
+const getFamilyMembers = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id)
+    .populate('familyMembers.user', '_id email name avatar dailyOilLimit');
+  
+  const familyMembers = (user.familyMembers || []).map(member => ({
+    _id: member.user?._id,
+    email: member.user?.email,
+    name: member.user?.name || 'Unknown',
+    avatar: member.user?.avatar,
+    relation: member.relation,
+    addedAt: member.addedAt,
+    dailyOilLimit: member.user?.dailyOilLimit || 50
+  }));
+  
+  res.json({
+    success: true,
+    familyMembers
+  });
+});
+
 module.exports = {
   signup,
   login,
@@ -519,5 +690,9 @@ module.exports = {
   completeOnboarding,
   changePassword,
   deleteAccount,
-  socialAuth
+  socialAuth,
+  searchUsers,
+  addFamilyMember,
+  removeFamilyMember,
+  getFamilyMembers
 };

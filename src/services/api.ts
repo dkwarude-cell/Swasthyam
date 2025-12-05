@@ -184,6 +184,42 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Family member endpoints
+  async searchUsers(query: string): Promise<ApiResponse<Array<{ _id: string; email: string; name: string; avatar?: string }>>> {
+    return this.request(`${API_ENDPOINTS.AUTH.SEARCH_USERS}?query=${encodeURIComponent(query)}`, {
+      method: 'GET',
+    });
+  }
+
+  async getFamilyMembers(): Promise<ApiResponse<FamilyMember[]>> {
+    return this.request<FamilyMember[]>(API_ENDPOINTS.AUTH.FAMILY, {
+      method: 'GET',
+    });
+  }
+
+  async addFamilyMember(userId: string, relation: string): Promise<ApiResponse<User>> {
+    return this.request<User>(API_ENDPOINTS.AUTH.FAMILY, {
+      method: 'POST',
+      body: JSON.stringify({ userId, relation }),
+    });
+  }
+
+  async removeFamilyMember(userId: string): Promise<ApiResponse<User>> {
+    return this.request<User>(`${API_ENDPOINTS.AUTH.FAMILY}/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+}
+
+export interface FamilyMember {
+  _id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  relation: string;
+  addedAt: string;
+  dailyOilLimit?: number;
 }
 
 export const apiService = new ApiService();

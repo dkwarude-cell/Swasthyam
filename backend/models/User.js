@@ -145,6 +145,23 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   
+  // Family Members (linked users)
+  familyMembers: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    relation: {
+      type: String,
+      enum: ['spouse', 'parent', 'child', 'sibling', 'other'],
+      required: true
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  
   // Social Authentication
   googleId: {
     type: String,

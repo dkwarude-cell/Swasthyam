@@ -9,7 +9,11 @@ const {
   completeOnboarding,
   changePassword,
   deleteAccount,
-  socialAuth
+  socialAuth,
+  searchUsers,
+  addFamilyMember,
+  removeFamilyMember,
+  getFamilyMembers
 } = require('../controllers/authController');
 
 // Public routes
@@ -23,5 +27,11 @@ router.put('/profile', protect, updateProfile);
 router.post('/complete-onboarding', protect, completeOnboarding);
 router.put('/change-password', protect, changePassword);
 router.delete('/account', protect, deleteAccount);
+
+// Family member routes
+router.get('/search-users', protect, searchUsers);
+router.get('/family', protect, getFamilyMembers);
+router.post('/family', protect, addFamilyMember);
+router.delete('/family/:userId', protect, removeFamilyMember);
 
 module.exports = router;
