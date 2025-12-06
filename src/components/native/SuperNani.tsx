@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface SuperNaniProps {
   isOpen: boolean;
@@ -27,10 +28,8 @@ interface Message {
 }
 
 const quickActions = [
-  { id: 'scan', label: 'Scan Product', icon: 'camera' as const, color: '#fcaf56' },
-  { id: 'tips', label: 'Oil Tips', icon: 'water' as const, color: '#1b4a5a' },
-  { id: 'recipes', label: 'Recipes', icon: 'restaurant' as const, color: '#fcaf56' },
-  { id: 'report', label: 'My Report', icon: 'bar-chart' as const, color: '#1b4a5a' },
+  { id: 'recipes', label: 'Recipes', icon: 'restaurant' as const, colors: ['#fcaf56', '#f59e0b'] },
+  { id: 'report', label: 'My Report', icon: 'bar-chart' as const, colors: ['#1b4a5a', '#0f3a47'] },
 ];
 
 const suggestedPrompts = [
@@ -149,11 +148,17 @@ export function SuperNani({ isOpen, onClose, language = 'en' }: SuperNaniProps) 
   };
 
   const renderOnboarding = () => (
-    <View style={styles.onboardingContainer}>
+    <LinearGradient
+      colors={['#ffeedd', '#fcf5e8', '#ffffff']}
+      style={styles.onboardingContainer}
+    >
       <View style={styles.naniAvatarContainer}>
-        <View style={styles.naniAvatar}>
+        <LinearGradient
+          colors={['#1b4a5a', '#0f3a47']}
+          style={styles.naniAvatar}
+        >
           <Ionicons name="restaurant" size={48} color="#fff" />
-        </View>
+        </LinearGradient>
       </View>
       
       <Text style={styles.onboardingTitle}>Meet Super Nani</Text>
@@ -179,33 +184,59 @@ export function SuperNani({ isOpen, onClose, language = 'en' }: SuperNaniProps) 
       </View>
       
       <TouchableOpacity 
-        style={styles.getStartedButton}
         onPress={handleOnboardingComplete}
+        activeOpacity={0.8}
       >
-        <Text style={styles.getStartedButtonText}>Get Started</Text>
+        <LinearGradient
+          colors={['#1b4a5a', '#0f3a47']}
+          style={styles.getStartedButton}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Text style={styles.getStartedButtonText}>Get Started</Text>
+        </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </LinearGradient>
   );
 
   const renderHome = () => (
-    <View style={styles.homeContainer}>
-      <View style={styles.naniAvatarSmall}>
-        <Ionicons name="restaurant" size={32} color="#fff" />
-      </View>
-      
-      <Text style={styles.homeTitle}>Hi! I'm Super Nani</Text>
-      <Text style={styles.homeSubtitle}>How can I help you today?</Text>
+    <ScrollView 
+      style={styles.homeScrollView}
+      contentContainerStyle={styles.homeContainer}
+      showsVerticalScrollIndicator={false}
+    >
+      <LinearGradient
+        colors={['#ffeedd', '#fcf5e8', '#ffffff']}
+        style={styles.homeGradient}
+      >
+        <LinearGradient
+          colors={['#1b4a5a', '#0f3a47']}
+          style={styles.naniAvatarSmall}
+        >
+          <Ionicons name="restaurant" size={32} color="#fff" />
+        </LinearGradient>
+        
+        <Text style={styles.homeTitle}>Hi! I'm Super Nani</Text>
+        <Text style={styles.homeSubtitle}>How can I help you today?</Text>
+      </LinearGradient>
       
       {/* Quick Actions */}
       <View style={styles.quickActionsContainer}>
         {quickActions.map((action) => (
           <TouchableOpacity
             key={action.id}
-            style={[styles.quickActionButton, { backgroundColor: action.color }]}
             onPress={() => handleQuickAction(action.id)}
+            activeOpacity={0.8}
           >
-            <Ionicons name={action.icon} size={24} color="#fff" />
-            <Text style={styles.quickActionText}>{action.label}</Text>
+            <LinearGradient
+              colors={action.colors}
+              style={styles.quickActionButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name={action.icon} size={24} color="#fff" />
+              <Text style={styles.quickActionText}>{action.label}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         ))}
       </View>
@@ -226,13 +257,20 @@ export function SuperNani({ isOpen, onClose, language = 'en' }: SuperNaniProps) 
       </View>
       
       <TouchableOpacity
-        style={styles.startChatButton}
         onPress={() => setCurrentScreen('chat')}
+        activeOpacity={0.8}
       >
-        <Ionicons name="chatbubbles" size={20} color="#fff" style={{ marginRight: 8 }} />
-        <Text style={styles.startChatButtonText}>Start Chat</Text>
+        <LinearGradient
+          colors={['#1b4a5a', '#0f3a47']}
+          style={styles.startChatButton}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Ionicons name="chatbubbles" size={20} color="#fff" style={{ marginRight: 8 }} />
+          <Text style={styles.startChatButtonText}>Start Chat</Text>
+        </LinearGradient>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 
   const renderChat = () => (
@@ -257,9 +295,12 @@ export function SuperNani({ isOpen, onClose, language = 'en' }: SuperNaniProps) 
             ]}
           >
             {message.sender === 'nani' && (
-              <View style={styles.naniMessageIcon}>
+              <LinearGradient
+                colors={['#1b4a5a', '#0f3a47']}
+                style={styles.naniMessageIcon}
+              >
                 <Ionicons name="restaurant" size={16} color="#fff" />
-              </View>
+              </LinearGradient>
             )}
             <View style={styles.messageContent}>
               <Text style={[
@@ -340,7 +381,7 @@ export function SuperNani({ isOpen, onClose, language = 'en' }: SuperNaniProps) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fafbfa',
+    backgroundColor: '#ffffff',
   },
   header: {
     flexDirection: 'row',
@@ -351,6 +392,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E7F2F1',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   backButton: {
     width: 40,
@@ -381,12 +433,22 @@ const styles = StyleSheet.create({
   },
   naniAvatarContainer: {
     marginBottom: 32,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#1b4a5a',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   naniAvatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#1b4a5a',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -416,12 +478,22 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   getStartedButton: {
-    backgroundColor: '#1b4a5a',
     paddingVertical: 16,
     paddingHorizontal: 48,
     borderRadius: 12,
     width: '100%',
     alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#1b4a5a',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   getStartedButtonText: {
     color: '#fff',
@@ -430,20 +502,41 @@ const styles = StyleSheet.create({
   },
   
   // Home styles
-  homeContainer: {
+  homeScrollView: {
     flex: 1,
+  },
+  homeContainer: {
     paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  homeGradient: {
     paddingTop: 40,
+    paddingBottom: 32,
+    alignItems: 'center',
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   naniAvatarSmall: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#1b4a5a',
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'center',
     marginBottom: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#1b4a5a',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   homeTitle: {
     fontSize: 24,
@@ -461,17 +554,27 @@ const styles = StyleSheet.create({
   quickActionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
     marginBottom: 32,
   },
   quickActionButton: {
-    flex: 1,
-    minWidth: '47%',
+    width: (320 - 60) / 2,
     aspectRatio: 1.5,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   quickActionText: {
     color: '#fff',
@@ -499,6 +602,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: '#E7F2F1',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   suggestedPromptText: {
     fontSize: 14,
@@ -506,12 +620,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   startChatButton: {
-    backgroundColor: '#1b4a5a',
     paddingVertical: 16,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#1b4a5a',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   startChatButtonText: {
     color: '#fff',
@@ -545,7 +669,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#1b4a5a',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,

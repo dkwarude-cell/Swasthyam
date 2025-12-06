@@ -17,7 +17,8 @@ import { useNavigation } from '@react-navigation/native';
 import { Card, CardContent } from './Card';
 import { Badge } from './Badge';
 import { Progress } from './Progress';
-import Svg, { Path, Circle, Line, Text as SvgText, G, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Text as SvgText, G, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface MobileHomeProps {
   language: string;
@@ -88,7 +89,7 @@ export function MobileHome({ language }: MobileHomeProps) {
     en: {
       welcome: 'Welcome',
       today: 'Today',
-      todaysOilUsage: "Today's Oil Usage",
+      todaysOilUsage: "Oil Calories",
       oilConsumption: 'Oil Consumption',
       dailyOilConsumption: 'Daily Oil Consumption',
       dailyLimit: 'Daily Limit',
@@ -111,6 +112,11 @@ export function MobileHome({ language }: MobileHomeProps) {
       education: 'Education',
       savesOil: 'Saves oil',
       servings: 'servings',
+      learningModules: 'Learning Modules',
+      healthNutrition: 'Health & nutrition',
+      dalTadkaInsight: "Your 'Dal Tadka' used 20% less oil!",
+      greatJobKeepUp: 'Great job! Keep up the healthy cooking',
+      aiInsight: 'AI INSIGHT',
     },
     hi: {
       welcome: 'स्वागत है',
@@ -138,6 +144,11 @@ export function MobileHome({ language }: MobileHomeProps) {
       education: 'शिक्षा',
       savesOil: 'तेल बचाता है',
       servings: 'सर्विंग्स',
+      learningModules: 'सीखने के मॉड्यूल',
+      healthNutrition: 'स्वास्थ्य और पोषण',
+      dalTadkaInsight: "आपके 'दाल तड़का' में 20% कम तेल था!",
+      greatJobKeepUp: 'बढ़िया काम! स्वस्थ खाना बनाते रहें',
+      aiInsight: 'AI इनसाइट',
     },
   };
 
@@ -145,6 +156,10 @@ export function MobileHome({ language }: MobileHomeProps) {
 
   const handleScanFood = () => {
     console.log('Open camera for food scanning');
+  };
+
+  const handleLogOil = () => {
+    navigation.navigate('OilTracker');
   };
 
   return (
@@ -296,7 +311,7 @@ export function MobileHome({ language }: MobileHomeProps) {
         <View style={styles.usageCard}>
           <View style={styles.usageHeader}>
             <Text style={styles.usageTitle}>{t.todaysOilUsage}</Text>
-            <Text style={styles.usageValue}>{dailyConsumption}ml / {dailyLimit}ml</Text>
+            <Text style={styles.usageValue}>{dailyConsumption} / {dailyLimit} cal</Text>
           </View>
           <View style={styles.progressBarContainer}>
             <View style={[styles.progressBarFill, { width: `${(dailyConsumption / dailyLimit) * 100}%` }]} />
@@ -319,32 +334,23 @@ export function MobileHome({ language }: MobileHomeProps) {
       <View style={styles.riskCard}>
         <Text style={styles.riskTitle}>{t.healthRiskLevel}</Text>
         <View style={styles.riskProgressContainer}>
-          <Svg width="100%" height={10} style={styles.riskProgressBar}>
-            <Defs>
-              <LinearGradient id="riskGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <Stop offset="0%" stopColor="#7ed321" />
-                <Stop offset="50%" stopColor="#f5a623" />
-                <Stop offset="100%" stopColor="#ff6b6b" />
-              </LinearGradient>
-            </Defs>
-            {/* Background bar */}
-            <Path
-              d={`M5,0 L${width - 85},0 Q${width - 80},0 ${width - 80},5 L${width - 80},5 Q${width - 80},10 ${width - 85},10 L5,10 Q0,10 0,5 L0,5 Q0,0 5,0 Z`}
-              fill="#e8e8e8"
-            />
-            {/* Gradient fill */}
-            <Path
-              d={`M5,0 L${((width - 80) * healthRiskLevel) / 100 - 5},0 Q${((width - 80) * healthRiskLevel) / 100},0 ${((width - 80) * healthRiskLevel) / 100},5 L${((width - 80) * healthRiskLevel) / 100},5 Q${((width - 80) * healthRiskLevel) / 100},10 ${((width - 80) * healthRiskLevel) / 100 - 5},10 L5,10 Q0,10 0,5 L0,5 Q0,0 5,0 Z`}
-              fill="url(#riskGradient)"
-            />
-          </Svg>
+          <LinearGradient
+            colors={['#7ed321','#7ed321', '#65ad18ff','#f5a623', '#ff6b6b']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.riskProgressBackground}
+          />
+          <View style={[styles.riskPointer, { left: `${healthRiskLevel}%` }]}>
+            <View style={styles.riskPointerTriangle} />
+            <View style={styles.riskPointerLine} />
+          </View>
         </View>
       </View>
 
-      {/* Oil Monitoring Section */}
+      {/* Quick Actions Section */}
       <View style={styles.monitoringSection}>
         <View style={styles.monitoringHeader}>
-          <Text style={styles.monitoringTitle}>{t.oilMonitoring}</Text>
+          <Text style={styles.monitoringTitle}>{t.quickActions}</Text>
           <View style={styles.monitoringIcons}>
             <TouchableOpacity>
               <Ionicons name="shuffle" size={20} color="#1b4a5a" />
@@ -355,9 +361,10 @@ export function MobileHome({ language }: MobileHomeProps) {
           </View>
         </View>
         
+        {/* First Row - Log Oil and Oil Scan */}
         <View style={styles.monitoringCards}>
           {/* Log Oil Card */}
-          <TouchableOpacity style={styles.monitoringCard} onPress={handleScanFood}>
+          <TouchableOpacity style={styles.monitoringCard} onPress={handleLogOil}>
             <View style={styles.monitoringIconContainer}>
               <Ionicons name="add" size={32} color="#ffffff" />
             </View>
@@ -372,6 +379,38 @@ export function MobileHome({ language }: MobileHomeProps) {
             </View>
             <Text style={styles.monitoringCardTitle}>{t.oilScan}</Text>
             <Text style={styles.monitoringCardSubtitle}>{t.scanMealOrProduct}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Second Row - Learning Modules and AI Insight */}
+        <View style={styles.monitoringCards}>
+          {/* Learning Modules Card */}
+          <TouchableOpacity style={styles.learningCardWrapper}>
+            <View style={styles.learningCard}>
+              <View style={[styles.monitoringIconContainer, styles.learningIconContainer]}>
+                <Ionicons name="book" size={28} color="#ffffff" />
+              </View>
+              <Text style={styles.monitoringCardTitle}>{t.learningModules}</Text>
+              <Text style={styles.monitoringCardSubtitle}>{t.healthNutrition}</Text>
+            </View>
+          </TouchableOpacity>
+          
+          {/* AI Insight Card */}
+          <TouchableOpacity style={styles.aiInsightCardWrapper}>
+            <LinearGradient
+              colors={['#d946ef', '#ec4899']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.aiInsightCard}
+            >
+              <View style={styles.aiInsightBadge}>
+                <Text style={styles.aiInsightBadgeText}>{t.aiInsight}</Text>
+              </View>
+              <View style={[styles.monitoringIconContainer, styles.aiInsightIconContainer]}>
+                <Ionicons name="sparkles" size={24} color="#ffffff" />
+              </View>
+              <Text style={styles.aiInsightTitle}>{t.dalTadkaInsight}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </View>
@@ -597,13 +636,14 @@ const styles = StyleSheet.create({
   monitoringCards: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 12,
   },
   monitoringCard: {
     flex: 1,
     backgroundColor: '#1b4a5a',
     borderRadius: 20,
     padding: 20,
-    minHeight: 180,
+    minHeight: 150,
   },
   monitoringIconContainer: {
     width: 56,
@@ -628,6 +668,62 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     lineHeight: 20,
   },
+  // Learning Modules Card Styles
+  learningCardWrapper: {
+    flex: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  learningCard: {
+    flex: 1,
+    backgroundColor: '#3b82f6',
+    minHeight: 150,
+    borderRadius: 20,
+    padding: 20,
+  },
+  learningIconContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  // AI Insight Card Styles
+  aiInsightCardWrapper: {
+    flex: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  aiInsightCard: {
+    flex: 1,
+    position: 'relative',
+    borderRadius: 20,
+    padding: 20,
+    minHeight: 150,
+  },
+  aiInsightBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    backgroundColor: '#fbbf24',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  aiInsightBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#000000',
+    letterSpacing: 0.5,
+  },
+  aiInsightIconContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  aiInsightTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 6,
+    lineHeight: 22,
+  },
+  
   // National Campaign Styles
   campaignSection: {
     marginBottom: 24,
@@ -926,8 +1022,31 @@ const styles = StyleSheet.create({
   },
   riskProgressContainer: {
     position: 'relative',
+    height: 10,
+    width: '100%',
   },
-  riskProgressBar: {
-    borderRadius: 10,
+  riskProgressBackground: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  riskPointer: {
+    position: 'absolute',
+    top: -8,
+    marginLeft: -8,
+    alignItems: 'center',
+  },
+  riskPointerTriangle: {
+    width: 16,
+    height: 10,
+    backgroundColor: '#040707',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  riskPointerLine: {
+    width: 2,
+    height: 10,
+    backgroundColor: '#040707',
   },
 });

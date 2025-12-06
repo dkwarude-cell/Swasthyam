@@ -5,220 +5,522 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Image,
-  FlatList,
+  Dimensions,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Card, CardContent } from './Card';
-import { Badge } from './Badge';
-import { Button } from './Button';
 
 interface MobilePartnersProps {
   language: string;
 }
 
-interface Partner {
-  id: number;
-  name: string;
-  rating: number;
-  verified: boolean;
-  products: number;
-  logo: string;
-}
+const { width } = Dimensions.get('window');
 
-interface OilProduct {
-  id: number;
-  name: string;
-  brand: string;
-  price: number;
-  rating: number;
-  healthScore: number;
-  verified: boolean;
-}
-
-const partners: Partner[] = [
-  { id: 1, name: 'Fortune Oils', rating: 4.5, verified: true, products: 12, logo: '🛢️' },
-  { id: 2, name: 'Saffola', rating: 4.7, verified: true, products: 8, logo: '🌻' },
-  { id: 3, name: 'Dhara', rating: 4.3, verified: true, products: 10, logo: '🌾' },
-  { id: 4, name: 'Sundrop', rating: 4.6, verified: true, products: 7, logo: '☀️' },
-  { id: 5, name: 'Gemini', rating: 4.2, verified: true, products: 9, logo: '♊' },
-  { id: 6, name: 'Postman', rating: 4.4, verified: true, products: 6, logo: '📦' },
+const certifiedPartners = [
+  {
+    id: 1,
+    name: 'Spice Garden Restaurant',
+    category: 'Restaurant',
+    rating: 4.8,
+    verified: true,
+    healthScore: 92,
+    address: 'Mumbai, Maharashtra',
+    speciality: 'Traditional Indian Cuisine'
+  },
+  {
+    id: 2,
+    name: 'Green Leaf Cafe',
+    category: 'Cafe',
+    rating: 4.6,
+    verified: true,
+    healthScore: 88,
+    address: 'Pune, Maharashtra',
+    speciality: 'Healthy Fast Food'
+  },
+  {
+    id: 3,
+    name: 'Ocean View Bistro',
+    category: 'Restaurant',
+    rating: 4.7,
+    verified: true,
+    healthScore: 90,
+    address: 'Goa',
+    speciality: 'Seafood & Continental'
+  },
+  {
+    id: 4,
+    name: 'Masala Kitchen',
+    category: 'Restaurant',
+    rating: 4.5,
+    verified: true,
+    healthScore: 86,
+    address: 'Delhi NCR',
+    speciality: 'North Indian Cuisine'
+  },
+  {
+    id: 5,
+    name: 'Fresh Bites',
+    category: 'Cafe',
+    rating: 4.4,
+    verified: true,
+    healthScore: 84,
+    address: 'Bangalore, Karnataka',
+    speciality: 'Quick Bites & Beverages'
+  },
+  {
+    id: 6,
+    name: 'Royal Tandoor',
+    category: 'Restaurant',
+    rating: 4.9,
+    verified: true,
+    healthScore: 94,
+    address: 'Hyderabad, Telangana',
+    speciality: 'Mughlai & Tandoori'
+  }
 ];
 
-const oilProducts: OilProduct[] = [
-  { id: 1, name: 'Sunflower Oil', brand: 'Fortune', price: 180, rating: 4.5, healthScore: 85, verified: true },
-  { id: 2, name: 'Rice Bran Oil', brand: 'Saffola', price: 220, rating: 4.7, healthScore: 92, verified: true },
-  { id: 3, name: 'Groundnut Oil', brand: 'Dhara', price: 150, rating: 4.3, healthScore: 78, verified: true },
-  { id: 4, name: 'Olive Oil', brand: 'Figaro', price: 450, rating: 4.8, healthScore: 95, verified: true },
-  { id: 5, name: 'Mustard Oil', brand: 'Postman', price: 130, rating: 4.2, healthScore: 82, verified: true },
-  { id: 6, name: 'Coconut Oil', brand: 'Parachute', price: 190, rating: 4.6, healthScore: 88, verified: true },
+const oilProducts = [
+  {
+    id: 1,
+    name: 'Fortune Rice Bran Oil',
+    price: 155,
+    unit: 'L',
+    gst: '5%',
+    tfa: '<2%',
+    badges: ['Fortified', 'Healthy Choice'],
+    availability: 'Available via PDS in Maharashtra',
+    points: 5,
+    featured: true
+  },
+  {
+    id: 2,
+    name: 'Sundrop Heart Lite',
+    price: 142,
+    unit: 'L',
+    gst: '12%',
+    tfa: '<2%',
+    badges: ['Fortified'],
+    availability: 'Available in most regions',
+    points: 4,
+    featured: false
+  },
+  {
+    id: 3,
+    name: 'Saffola Gold Pro Healthy Lifestyle',
+    price: 168,
+    unit: 'L',
+    gst: '5%',
+    tfa: '<1%',
+    badges: ['Fortified', 'Healthy Choice', 'Low TFA'],
+    availability: 'Premium stores nationwide',
+    points: 8,
+    featured: true
+  },
+  {
+    id: 4,
+    name: 'Dhara Groundnut Oil',
+    price: 135,
+    unit: 'L',
+    gst: '18%',
+    tfa: '<3%',
+    badges: ['Traditional'],
+    availability: 'Available via PDS in Tamil Nadu',
+    points: 3,
+    featured: false
+  },
+  {
+    id: 5,
+    name: 'Oleev Active Olive Oil',
+    price: 285,
+    unit: 'L',
+    gst: '5%',
+    tfa: '<1%',
+    badges: ['Fortified', 'Healthy Choice', 'Premium'],
+    availability: 'Premium outlets',
+    points: 12,
+    featured: true
+  },
+  {
+    id: 6,
+    name: 'Gemini Sunflower Oil',
+    price: 128,
+    unit: 'L',
+    gst: '12%',
+    tfa: '<2%',
+    badges: ['Fortified'],
+    availability: 'Available in South India',
+    points: 4,
+    featured: false
+  }
 ];
 
 export function MobilePartners({ language }: MobilePartnersProps) {
   const navigation = useNavigation<any>();
-  const [selectedTab, setSelectedTab] = useState('partners');
+  const [selectedTab, setSelectedTab] = useState('certified');
+  const [productSearch, setProductSearch] = useState('');
+  const [restaurantSearch, setRestaurantSearch] = useState('');
+  const [selectedGST, setSelectedGST] = useState<string | null>(null);
+  const [selectedSort, setSelectedSort] = useState('popular');
+  const [showFortified, setShowFortified] = useState(false);
+  const [compareProducts, setCompareProducts] = useState<number[]>([]);
 
   const text = {
     en: {
-      title: 'Partners',
-      subtitle: 'Certified oil brands',
-      partners: 'Partners',
-      products: 'Products',
+      partnersTitle: 'SwasthTel Partners',
+      partnersSubtitle: 'Certified partners & products',
+      certifiedTab: 'Swasth Tel Certified',
+      productsTab: 'Swasth Oil Products',
+      title: 'Swasth Oil Products',
+      subtitle: 'Verified healthy cooking oils',
+      restaurantSearchPlaceholder: 'Search restaurants, cafes...',
       verified: 'Verified',
-      productsAvailable: 'products',
-      rating: 'Rating',
       healthScore: 'Health Score',
-      viewDetails: 'View Details',
-      compare: 'Compare',
+      scanProduct: 'Scan Oil Product',
+      enterManual: 'Enter SKU / Manual',
+      scanInfo: 'Scan any edible oil bottle to view GST, health score and better alternatives.',
+      howWorks: 'How scanning works',
+      searchPlaceholder: 'Search oil, brand, or SKU',
+      sort: 'Sort:',
+      popular: 'Popular',
+      priceLow: 'Price: Low to High',
+      priceHigh: 'Price: High to Low',
+      compareProducts: 'Compare Products',
+      addToCompare: 'Add to compare',
+      pts: 'pts if purchased',
+      aboutTitle: 'About Swasth Oil Products',
+      aboutText1: 'All listed products are verified for quality standards and health parameters. Products with "Healthy Choice" badge meet SwasthTel\'s recommended criteria for heart health and low trans-fat content.',
+      aboutText2: 'GST rates shown are indicative. Actual prices may vary by region and retailer. PDS availability is subject to state government schemes.',
+      fortified: 'Fortified',
+      healthyChoice: 'Healthy Choice',
     },
     hi: {
-      title: 'साझेदार',
-      subtitle: 'प्रमाणित तेल ब्रांड',
-      partners: 'साझेदार',
-      products: 'उत्पाद',
+      partnersTitle: 'स्वास्थ्यटेल साझेदार',
+      partnersSubtitle: 'प्रमाणित साझेदार और उत्पाद',
+      certifiedTab: 'स्वास्थ्य टेल प्रमाणित',
+      productsTab: 'स्वस्थ तेल उत्पाद',
+      title: 'स्वस्थ तेल उत्पाद',
+      subtitle: 'सत्यापित स्वस्थ खाना पकाने के तेल',
+      restaurantSearchPlaceholder: 'रेस्तरां, कैफे खोजें...',
       verified: 'सत्यापित',
-      productsAvailable: 'उत्पाद',
-      rating: 'रेटिंग',
       healthScore: 'स्वास्थ्य स्कोर',
-      viewDetails: 'विवरण देखें',
-      compare: 'तुलना करें',
+      scanProduct: 'तेल उत्पाद स्कैन करें',
+      enterManual: 'SKU दर्ज करें / मैनुअल',
+      scanInfo: 'GST, स्वास्थ्य स्कोर और बेहतर विकल्प देखने के लिए किसी भी खाद्य तेल की बोतल को स्कैन करें।',
+      howWorks: 'स्कैनिंग कैसे काम करती है',
+      searchPlaceholder: 'तेल, ब्रांड या SKU खोजें',
+      sort: 'क्रमबद्ध करें:',
+      popular: 'लोकप्रिय',
+      priceLow: 'कीमत: कम से ज्यादा',
+      priceHigh: 'कीमत: ज्यादा से कम',
+      compareProducts: 'उत्पादों की तुलना करें',
+      addToCompare: 'तुलना में जोड़ें',
+      pts: 'अंक यदि खरीदा',
+      aboutTitle: 'स्वस्थ तेल उत्पादों के बारे में',
+      aboutText1: 'सूचीबद्ध सभी उत्पाद गुणवत्ता मानकों और स्वास्थ्य मापदंडों के लिए सत्यापित हैं।',
+      aboutText2: 'दिखाए गए GST दरें सांकेतिक हैं। वास्तविक कीमतें क्षेत्र और खुदरा विक्रेता के अनुसार भिन्न हो सकती हैं।',
+      fortified: 'फोर्टिफाइड',
+      healthyChoice: 'स्वस्थ विकल्प',
     },
   };
 
   const t = text[language as keyof typeof text] || text.en;
 
-  const renderPartnerCard = ({ item }: { item: Partner }) => (
-    <TouchableOpacity 
-      style={styles.partnerCard}
-      onPress={() => navigation.navigate('PartnerDetail', { partnerId: item.id })}
-    >
-      <View style={styles.partnerHeader}>
-        <View style={styles.partnerLogo}>
-          <Text style={styles.partnerLogoText}>{item.logo}</Text>
-        </View>
-        <View style={styles.partnerInfo}>
-          <View style={styles.partnerTitleRow}>
-            <Text style={styles.partnerName}>{item.name}</Text>
-            {item.verified && (
-              <Ionicons name="checkmark-circle" size={20} color="#07A996" />
-            )}
-          </View>
-          <View style={styles.partnerStats}>
-            <View style={styles.stat}>
-              <Ionicons name="star" size={14} color="#F59E0B" />
-              <Text style={styles.statText}>{item.rating}</Text>
-            </View>
-            <Text style={styles.statDivider}>•</Text>
-            <Text style={styles.statText}>
-              {item.products} {t.productsAvailable}
-            </Text>
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+  const filteredPartners = certifiedPartners.filter(partner => {
+    const matchesSearch = partner.name.toLowerCase().includes(restaurantSearch.toLowerCase()) ||
+                          partner.category.toLowerCase().includes(restaurantSearch.toLowerCase()) ||
+                          partner.speciality.toLowerCase().includes(restaurantSearch.toLowerCase());
+    return matchesSearch;
+  }).sort((a, b) => b.healthScore - a.healthScore);
 
-  const renderProductCard = ({ item }: { item: OilProduct }) => (
-    <View style={styles.productCard}>
-      <View style={styles.productHeader}>
-        <View style={styles.productIcon}>
-          <Ionicons name="water" size={32} color="#1b4a5a" />
-        </View>
-        {item.verified && (
-          <Badge variant="success" style={styles.verifiedBadge}>
-            <Text style={{color: '#16a34a', fontSize: 10}}>{t.verified}</Text>
-          </Badge>
-        )}
-      </View>
-      
-      <Text style={styles.productName}>{item.name}</Text>
-      <Text style={styles.productBrand}>{item.brand}</Text>
-      
-      <View style={styles.productStats}>
-        <View style={styles.productStat}>
-          <Text style={styles.productStatLabel}>{t.rating}</Text>
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={14} color="#F59E0B" />
-            <Text style={styles.productStatValue}>{item.rating}</Text>
-          </View>
-        </View>
-        <View style={styles.productStat}>
-          <Text style={styles.productStatLabel}>{t.healthScore}</Text>
-          <Text style={styles.productStatValue}>{item.healthScore}</Text>
-        </View>
-      </View>
+  const filteredProducts = oilProducts.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(productSearch.toLowerCase());
+    const matchesGST = !selectedGST || product.gst === selectedGST;
+    const matchesFortified = !showFortified || product.badges.includes('Fortified');
+    return matchesSearch && matchesGST && matchesFortified;
+  }).sort((a, b) => {
+    if (selectedSort === 'popular') return b.points - a.points;
+    if (selectedSort === 'price-low') return a.price - b.price;
+    if (selectedSort === 'price-high') return b.price - a.price;
+    return 0;
+  });
 
-      <View style={styles.productFooter}>
-        <Text style={styles.productPrice}>₹{item.price}/L</Text>
-        <TouchableOpacity style={styles.productButton}>
-          <Text style={styles.productButtonText}>{t.viewDetails}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  const toggleCompare = (id: number) => {
+    if (compareProducts.includes(id)) {
+      setCompareProducts(compareProducts.filter(pid => pid !== id));
+    } else if (compareProducts.length < 3) {
+      setCompareProducts([...compareProducts, id]);
+    }
+  };
+
+  const handleScan = () => {
+    console.log('Open camera for product scanning');
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>{t.title}</Text>
-        <Text style={styles.subtitle}>{t.subtitle}</Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="storefront" size={24} color="#ffffff" />
+            </View>
+            <View>
+              <Text style={styles.headerTitle}>{t.partnersTitle}</Text>
+              <Text style={styles.headerSubtitle}>{t.partnersSubtitle}</Text>
+            </View>
+          </View>
 
-        {/* Tabs */}
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tab, selectedTab === 'partners' && styles.tabActive]}
-            onPress={() => setSelectedTab('partners')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'partners' && styles.tabTextActive]}>
-              {t.partners}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, selectedTab === 'products' && styles.tabActive]}
-            onPress={() => setSelectedTab('products')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'products' && styles.tabTextActive]}>
-              {t.products}
-            </Text>
-          </TouchableOpacity>
+          {/* Tabs */}
+          <View style={styles.tabs}>
+            <TouchableOpacity
+              style={[styles.tab, selectedTab === 'certified' && styles.tabActive]}
+              onPress={() => setSelectedTab('certified')}
+            >
+              <Text style={[styles.tabText, selectedTab === 'certified' && styles.tabTextActive]}>
+                {t.certifiedTab}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, selectedTab === 'products' && styles.tabActive]}
+              onPress={() => setSelectedTab('products')}
+            >
+              <Text style={[styles.tabText, selectedTab === 'products' && styles.tabTextActive]}>
+                {t.productsTab}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      {/* Content */}
-      {selectedTab === 'partners' ? (
-        <FlatList
-          key="partners-list"
-          data={partners}
-          renderItem={renderPartnerCard}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.partnersList}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <FlatList
-          key="products-grid"
-          data={oilProducts}
-          renderItem={renderProductCard}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          contentContainerStyle={styles.productsList}
-          columnWrapperStyle={styles.productsRow}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+        <View style={styles.content}>
+          {selectedTab === 'certified' ? (
+            // Certified Partners Tab
+            <>
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <Ionicons name="search" size={20} color="#5B5B5B" style={styles.searchIcon} />
+                <TextInput
+                  placeholder={t.restaurantSearchPlaceholder}
+                  value={restaurantSearch}
+                  onChangeText={setRestaurantSearch}
+                  style={styles.searchInput}
+                  placeholderTextColor="#5B5B5B"
+                />
+              </View>
 
-      {/* Compare Button (floating) */}
-      {selectedTab === 'products' && (
-        <TouchableOpacity 
-          style={styles.compareButton}
-          onPress={() => navigation.navigate('ProductComparison')}
-        >
-          <Ionicons name="git-compare" size={24} color="#ffffff" />
-          <Text style={styles.compareButtonText}>{t.compare}</Text>
-        </TouchableOpacity>
-      )}
+              {/* Certified Partners List */}
+              <View style={styles.partnersList}>
+                {filteredPartners.map((partner) => (
+                  <TouchableOpacity key={partner.id} style={styles.partnerCard}>
+                    <View style={styles.partnerCardHeader}>
+                      <View style={styles.partnerIconContainer}>
+                        <Ionicons name="restaurant" size={28} color="#1b4a5a" />
+                      </View>
+                      <View style={styles.partnerCardInfo}>
+                        <View style={styles.partnerNameRow}>
+                          <Text style={styles.partnerName}>{partner.name}</Text>
+                          {partner.verified && (
+                            <Ionicons name="checkmark-circle" size={20} color="#07A996" />
+                          )}
+                        </View>
+                        <Text style={styles.partnerCategory}>{partner.category} • {partner.speciality}</Text>
+                        <Text style={styles.partnerAddress}>
+                          <Ionicons name="location" size={12} color="#5B5B5B" /> {partner.address}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.partnerCardFooter}>
+                      <View style={styles.partnerStat}>
+                        <Ionicons name="star" size={16} color="#fcaf56" />
+                        <Text style={styles.partnerStatText}>{partner.rating}</Text>
+                      </View>
+                      <View style={styles.partnerHealthScore}>
+                        <Text style={styles.healthScoreLabel}>{t.healthScore}: </Text>
+                        <Text style={styles.healthScoreValue}>{partner.healthScore}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          ) : (
+            // Swasth Oil Products Tab
+            <>
+          {/* Scan Product Section */}
+          <View style={styles.scanSection}>
+            <TouchableOpacity style={styles.scanButton} onPress={handleScan}>
+              <Ionicons name="camera" size={20} color="#1b4a5a" />
+              <Text style={styles.scanButtonText}>{t.scanProduct}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.manualButton}>
+              <Text style={styles.manualButtonText}>{t.enterManual}</Text>
+            </TouchableOpacity>
+
+            {/* Info Box */}
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>{t.scanInfo}</Text>
+              <TouchableOpacity>
+                <Text style={styles.infoLink}>{t.howWorks}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color="#5B5B5B" style={styles.searchIcon} />
+            <TextInput
+              placeholder={t.searchPlaceholder}
+              value={productSearch}
+              onChangeText={setProductSearch}
+              style={styles.searchInput}
+              placeholderTextColor="#5B5B5B"
+            />
+          </View>
+
+          {/* Filter Chips */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+            <View style={styles.filterChips}>
+              <TouchableOpacity
+                style={[styles.chip, selectedGST === '5%' && styles.chipActive]}
+                onPress={() => setSelectedGST(selectedGST === '5%' ? null : '5%')}
+              >
+                <Text style={[styles.chipText, selectedGST === '5%' && styles.chipTextActive]}>GST 5%</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.chip, selectedGST === '12%' && styles.chipActive]}
+                onPress={() => setSelectedGST(selectedGST === '12%' ? null : '12%')}
+              >
+                <Text style={[styles.chipText, selectedGST === '12%' && styles.chipTextActive]}>GST 12%</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.chip, selectedGST === '18%' && styles.chipActive]}
+                onPress={() => setSelectedGST(selectedGST === '18%' ? null : '18%')}
+              >
+                <Text style={[styles.chipText, selectedGST === '18%' && styles.chipTextActive]}>GST 18%</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.chip, showFortified && styles.chipActive]}
+                onPress={() => setShowFortified(!showFortified)}
+              >
+                <Text style={[styles.chipText, showFortified && styles.chipTextActive]}>{t.fortified}</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+
+          {/* Sort Dropdown */}
+          <View style={styles.sortContainer}>
+            <Text style={styles.sortLabel}>{t.sort}</Text>
+            <TouchableOpacity style={styles.sortButton}>
+              <Text style={styles.sortText}>
+                {selectedSort === 'popular' ? t.popular : selectedSort === 'price-low' ? t.priceLow : t.priceHigh}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color="#5B5B5B" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Compare Products Button */}
+          {compareProducts.length > 0 && (
+            <TouchableOpacity style={styles.compareButton}>
+              <Text style={styles.compareButtonText}>
+                {t.compareProducts} ({compareProducts.length})
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Product Listings */}
+          <View style={styles.productList}>
+            {filteredProducts.map((product) => (
+              <View key={product.id} style={styles.productCard}>
+                <View style={styles.productRow}>
+                  {/* Product Image Placeholder */}
+                  <View style={styles.productImage}>
+                    <View style={styles.productImageInner}>
+                      <View style={styles.productImageCircle} />
+                    </View>
+                  </View>
+
+                  {/* Product Info */}
+                  <View style={styles.productInfo}>
+                    <View style={styles.productHeader}>
+                      <View style={styles.productTitleRow}>
+                        <Text style={styles.productName}>{product.name}</Text>
+                        <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                      </View>
+                      <View style={styles.priceRow}>
+                        <Text style={styles.productPrice}>₹{product.price}/{product.unit}</Text>
+                        {product.featured && (
+                          <Ionicons name="trophy" size={16} color="#fcaf56" />
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Badges */}
+                    <View style={styles.badges}>
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>GST {product.gst}</Text>
+                      </View>
+                      {product.badges.includes('Fortified') && (
+                        <View style={[styles.badge, styles.badgeFortified]}>
+                          <Text style={styles.badgeTextFortified}>{t.fortified}</Text>
+                        </View>
+                      )}
+                      <View style={[styles.badge, styles.badgeTFA]}>
+                        <Text style={styles.badgeTextTFA}>TFA {product.tfa}</Text>
+                      </View>
+                      {product.badges.includes('Healthy Choice') && (
+                        <View style={[styles.badge, styles.badgeHealthy]}>
+                          <Text style={styles.badgeTextHealthy}>{t.healthyChoice}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Availability */}
+                    {product.availability && (
+                      <View style={styles.availabilityRow}>
+                        <Ionicons name="location" size={14} color="#3b82f6" />
+                        <Text style={styles.availabilityText}>{product.availability}</Text>
+                      </View>
+                    )}
+
+                    {/* Points */}
+                    <View style={styles.pointsRow}>
+                      <Ionicons name="star" size={14} color="#fcaf56" />
+                      <Text style={styles.pointsText}>+{product.points} {t.pts}</Text>
+                    </View>
+
+                    {/* Compare Checkbox */}
+                    <TouchableOpacity
+                      style={styles.compareCheckbox}
+                      onPress={() => toggleCompare(product.id)}
+                      disabled={!compareProducts.includes(product.id) && compareProducts.length >= 3}
+                    >
+                      <View style={[styles.checkbox, compareProducts.includes(product.id) && styles.checkboxActive]}>
+                        {compareProducts.includes(product.id) && (
+                          <Ionicons name="checkmark" size={14} color="#ffffff" />
+                        )}
+                      </View>
+                      <Text style={styles.compareText}>{t.addToCompare}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* Info Section */}
+          <View style={styles.aboutSection}>
+            <View style={styles.aboutHeader}>
+              <Ionicons name="information-circle" size={20} color="#1b4a5a" />
+              <Text style={styles.aboutTitle}>{t.aboutTitle}</Text>
+            </View>
+            <Text style={styles.aboutText}>{t.aboutText1}</Text>
+            <Text style={styles.aboutText}>{t.aboutText2}</Text>
+          </View>
+            </>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -231,131 +533,385 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#1b4a5a',
     paddingTop: 60,
+    paddingBottom: 20,
     paddingHorizontal: 20,
-    paddingBottom: 0,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginBottom: 20,
   },
   tabs: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: -1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 30,
+    padding: 4,
+    gap: 4,
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    borderRadius: 26,
   },
   tabActive: {
-    backgroundColor: '#fafbfa',
+    backgroundColor: '#ffffff',
   },
   tabText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
   },
   tabTextActive: {
     color: '#1b4a5a',
     fontWeight: '600',
   },
-  partnersList: {
+  iconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  content: {
+    padding: 20,
+  },
+  scanSection: {
+    marginBottom: 20,
+  },
+  scanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#1b4a5a',
+    borderRadius: 12,
+    paddingVertical: 16,
+    marginBottom: 12,
+  },
+  scanButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1b4a5a',
+  },
+  manualButton: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  manualButtonText: {
+    fontSize: 14,
+    color: '#5B5B5B',
+  },
+  infoBox: {
+    backgroundColor: '#ffeedd',
+    borderWidth: 1,
+    borderColor: '#fcaf56',
+    borderRadius: 12,
     padding: 16,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#040707',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  infoLink: {
+    fontSize: 14,
+    color: '#1b4a5a',
+    textDecorationLine: 'underline',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 14,
+    color: '#040707',
+  },
+  filterScroll: {
+    marginBottom: 16,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chip: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  chipActive: {
+    backgroundColor: '#1b4a5a',
+    borderColor: '#1b4a5a',
+  },
+  chipText: {
+    fontSize: 14,
+    color: '#040707',
+  },
+  chipTextActive: {
+    color: '#ffffff',
+  },
+  sortContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  sortLabel: {
+    fontSize: 14,
+    color: '#5B5B5B',
+  },
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  sortText: {
+    fontSize: 14,
+    color: '#040707',
+  },
+  compareButton: {
+    backgroundColor: '#3b82f6',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  compareButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  productList: {
+    gap: 16,
+  },
+  productCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  productRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  productImage: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productImageInner: {
+    width: 48,
+    height: 48,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  productImageCircle: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#9ca3af',
+    borderRadius: 12,
+  },
+  productInfo: {
+    flex: 1,
+    gap: 8,
+  },
+  productHeader: {
+    gap: 4,
+  },
+  productTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  productName: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+  },
+  badges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  badge: {
+    backgroundColor: '#dcfce7',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontSize: 12,
+    color: '#16a34a',
+  },
+  badgeFortified: {
+    backgroundColor: '#dbeafe',
+  },
+  badgeTextFortified: {
+    fontSize: 12,
+    color: '#2563eb',
+  },
+  badgeTFA: {
+    backgroundColor: '#ccfbf1',
+  },
+  badgeTextTFA: {
+    fontSize: 12,
+    color: '#0d9488',
+  },
+  badgeHealthy: {
+    backgroundColor: '#ffeedd',
+  },
+  badgeTextHealthy: {
+    fontSize: 12,
+    color: '#1b4a5a',
+  },
+  availabilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  availabilityText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#3b82f6',
+  },
+  pointsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  pointsText: {
+    fontSize: 12,
+    color: '#fcaf56',
+  },
+  compareCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: '#1b4a5a',
+    borderColor: '#1b4a5a',
+  },
+  compareText: {
+    fontSize: 14,
+    color: '#5B5B5B',
+  },
+  aboutSection: {
+    backgroundColor: '#fafbfa',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 24,
+  },
+  aboutHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  aboutTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1b4a5a',
+  },
+  aboutText: {
+    fontSize: 14,
+    color: '#5B5B5B',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  partnersList: {
+    gap: 16,
   },
   partnerCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
-  partnerHeader: {
+  partnerCardHeader: {
     flexDirection: 'row',
     gap: 12,
-  },
-  partnerLogo: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#E7F2F1',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  partnerLogoText: {
-    fontSize: 32,
-  },
-  partnerInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  partnerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  partnerName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#040707',
-  },
-  partnerStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    fontSize: 14,
-    color: '#5B5B5B',
-  },
-  statDivider: {
-    color: '#D3D3D3',
-  },
-  productsList: {
-    padding: 16,
-  },
-  productsRow: {
-    gap: 12,
-  },
-  productCard: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 12,
   },
-  productIcon: {
+  partnerIconContainer: {
     width: 56,
     height: 56,
     backgroundColor: '#E7F2F1',
@@ -363,45 +919,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  verifiedBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+  partnerCardInfo: {
+    flex: 1,
+    gap: 4,
   },
-  productName: {
+  partnerNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  partnerName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#040707',
-    marginBottom: 4,
-  },
-  productBrand: {
-    fontSize: 13,
-    color: '#5B5B5B',
-    marginBottom: 12,
-  },
-  productStats: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  productStat: {
     flex: 1,
   },
-  productStatLabel: {
-    fontSize: 11,
+  partnerCategory: {
+    fontSize: 13,
     color: '#5B5B5B',
-    marginBottom: 4,
   },
-  productStatValue: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1b4a5a',
+  partnerAddress: {
+    fontSize: 12,
+    color: '#5B5B5B',
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  productFooter: {
+  partnerCardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -409,42 +950,27 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E7F2F1',
   },
-  productPrice: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1b4a5a',
-  },
-  productButton: {
-    backgroundColor: '#07A996',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  productButtonText: {
-    fontSize: 12,
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  compareButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: '#1b4a5a',
+  partnerStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    gap: 4,
   },
-  compareButtonText: {
-    color: '#ffffff',
+  partnerStatText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#040707',
+  },
+  partnerHealthScore: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  healthScoreLabel: {
+    fontSize: 13,
+    color: '#5B5B5B',
+  },
+  healthScoreValue: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#07A996',
   },
 });

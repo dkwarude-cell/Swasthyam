@@ -8,8 +8,11 @@ import {
   TextInput,
   Modal,
   Alert,
+  SafeAreaView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Card, CardContent } from './Card';
 import { Button } from './Button';
 import { Badge } from './Badge';
@@ -107,17 +110,29 @@ export function MobileOilTracker({ language, navigation }: MobileOilTrackerProps
   const t = text[language as keyof typeof text] || text.en;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="water" size={24} color="#ffffff" />
+      <LinearGradient
+        colors={['#1b4a5a', '#0f3a47']}
+        style={styles.header}
+      >
+        <View style={styles.headerTop}>
+          <TouchableOpacity 
+            onPress={() => navigation?.goBack()} 
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={24} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="water" size={24} color="#ffffff" />
+            </View>
+            <View>
+              <Text style={styles.title}>{t.title}</Text>
+              <Text style={styles.subtitle}>{t.subtitle}</Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.title}>{t.title}</Text>
-            <Text style={styles.subtitle}>{t.subtitle}</Text>
-          </View>
+          <View style={{ width: 40 }} />
         </View>
 
         {/* Today's Progress */}
@@ -132,7 +147,7 @@ export function MobileOilTracker({ language, navigation }: MobileOilTrackerProps
             {todayTarget - todayTotal}g {t.remaining}
           </Text>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Quick Log Button */}
@@ -276,7 +291,7 @@ export function MobileOilTracker({ language, navigation }: MobileOilTrackerProps
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -286,18 +301,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#fafbfa',
   },
   header: {
-    backgroundColor: '#1b4a5a',
-    paddingTop: 60,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 0 : 12,
+    paddingHorizontal: 16,
     paddingBottom: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 20,
+    flex: 1,
   },
   iconContainer: {
     width: 40,
@@ -369,8 +395,8 @@ const styles = StyleSheet.create({
   logCard: {
     marginBottom: 20,
     borderWidth: 2,
-    borderColor: '#fcaf56',
-    backgroundColor: '#ffeedd',
+    borderColor: '#ffffffff',
+    backgroundColor: '#ffffffff',
   },
   logContent: {
     padding: 16,

@@ -252,8 +252,8 @@ function MainTabsNavigator({ language, onLogout }: MainTabsProps) {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            // Navigate to settings using parent navigator
-            navigation.getParent()?.navigate('Settings');
+            // Navigate to SuperNani chatbot using parent navigator
+            navigation.getParent()?.navigate('SuperNani');
           },
         })}
       />

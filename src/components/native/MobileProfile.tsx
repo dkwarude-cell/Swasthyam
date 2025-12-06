@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,664 +9,1091 @@ import {
   TextInput,
   Modal,
   Alert,
-  ActivityIndicator,
-  RefreshControl,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { Card, CardContent } from './Card';
-import { Badge } from './Badge';
-import { Button } from './Button';
-import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
-import apiService, { FamilyMember } from '../../services/api';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface MobileProfileProps {
   language: string;
-  onLogout: () => void;
+  onLogout?: () => void;
+  navigation?: any;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-// Responsive breakpoints
-const isSmallScreen = SCREEN_WIDTH < 360;
+// Family members data
+const familyMembers = [
+  {
+    id: 1,
+    name: 'Rajesh Sharma',
+    relation: 'Self',
+    age: 42,
+    gender: 'Male',
+    dailyConsumption: 35,
+    weeklyAvg: 38,
+    status: 'On Target',
+    avatar: 'RS'
+  },
+  {
+    id: 2,
+    name: 'Priya Sharma',
+    relation: 'Spouse',
+    age: 38,
+    gender: 'Female',
+    dailyConsumption: 28,
+    weeklyAvg: 30,
+    status: 'Excellent',
+    avatar: 'PS'
+  },
+  {
+    id: 3,
+    name: 'Aarav Sharma',
+    relation: 'Son',
+    age: 14,
+    gender: 'Male',
+    dailyConsumption: 32,
+    weeklyAvg: 34,
+    status: 'On Target',
+    avatar: 'AS'
+  },
+  {
+    id: 4,
+    name: 'Ananya Sharma',
+    relation: 'Daughter',
+    age: 10,
+    gender: 'Female',
+    dailyConsumption: 25,
+    weeklyAvg: 26,
+    status: 'Excellent',
+    avatar: 'AN'
+  }
+];
 
+// Current oil being used
+const currentOil = {
+  id: 1,
+  name: 'Fortune Rice Bran Oil',
+  brand: 'Fortune',
+  type: 'Rice Bran',
+  volume: '5L',
+  price: 775,
+  purchaseDate: 'Nov 15, 2025',
+  gst: '5%',
+  tfa: '<2%',
+  pufa: '32%',
+  mufa: '47%',
+  sfa: '21%',
+  badges: ['Fortified', 'Healthy Choice', 'Heart Safe'],
+  healthScore: 92,
+  remaining: '2.8L',
+  daysLeft: 18,
+  avgDailyUse: '155ml',
+  certifications: ['FSSAI', 'ISO 22000', 'BIS'],
+  nutritionPer100ml: {
+    energy: '884 kcal',
+    protein: '0g',
+    carbs: '0g',
+    fat: '100g',
+    cholesterol: '0mg',
+    vitamins: ['Vitamin A', 'Vitamin D', 'Vitamin E']
+  }
+};
+
+// Achievements
 const achievements = [
-  { id: 1, title: '10% Oil Reduction', icon: 'analytics', unlocked: true, points: 100 },
-  { id: 2, title: '30-Day Streak', icon: 'flame', unlocked: true, points: 150 },
-  { id: 3, title: 'Family Champion', icon: 'people', unlocked: true, points: 200 },
-  { id: 4, title: 'Health Hero', icon: 'heart', unlocked: true, points: 120 },
-  { id: 5, title: 'Community Leader', icon: 'trophy', unlocked: false, points: 300 },
-  { id: 6, title: 'Recipe Master', icon: 'star', unlocked: false, points: 180 },
+  { id: 1, title: '10% Oil Reduction', icon: 'analytics', unlocked: true, points: 100, date: 'Nov 20, 2025' },
+  { id: 2, title: '30-Day Streak', icon: 'flame', unlocked: true, points: 150, date: 'Nov 25, 2025' },
+  { id: 3, title: 'Family Champion', icon: 'people', unlocked: true, points: 200, date: 'Nov 28, 2025' },
+  { id: 4, title: 'Health Hero', icon: 'heart', unlocked: true, points: 120, date: 'Nov 10, 2025' },
+  { id: 5, title: 'Community Leader', icon: 'trophy', unlocked: false, points: 300, date: 'Locked' },
+  { id: 6, title: 'Recipe Master', icon: 'star', unlocked: false, points: 180, date: 'Locked' },
 ];
 
-const relationOptions = [
-  { value: 'spouse', label: 'Spouse' },
-  { value: 'parent', label: 'Parent' },
-  { value: 'child', label: 'Child' },
-  { value: 'sibling', label: 'Sibling' },
-  { value: 'other', label: 'Other' },
+// Rewards
+const rewards = [
+  { id: 1, name: 'Amazon Voucher ₹500', points: 5000, available: true },
+  { id: 2, name: 'SwasthTel Premium Oil Kit', points: 3000, available: true },
+  { id: 3, name: 'Health Check-up Package', points: 8000, available: false },
+  { id: 4, name: 'Recipe Book Bundle', points: 2000, available: true },
 ];
 
-export function MobileProfile({ language, onLogout }: MobileProfileProps) {
-  const navigation = useNavigation<any>();
-  const { user } = useAuth();
-  const { colors, isDark } = useTheme();
-  const [selectedTab, setSelectedTab] = useState('overview');
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+// Medical reports
+const medicalReports = [
+  {
+    id: 1,
+    name: 'Lipid Profile Test',
+    date: 'Nov 28, 2025',
+    type: 'Blood Test',
+    status: 'analyzed',
+    metrics: {
+      totalCholesterol: { value: 185, unit: 'mg/dL', status: 'normal' },
+      ldl: { value: 110, unit: 'mg/dL', status: 'normal' },
+      hdl: { value: 55, unit: 'mg/dL', status: 'good' },
+      triglycerides: { value: 140, unit: 'mg/dL', status: 'normal' }
+    }
+  },
+  {
+    id: 2,
+    name: 'Complete Blood Count',
+    date: 'Oct 15, 2025',
+    type: 'Blood Test',
+    status: 'analyzed'
+  },
+  {
+    id: 3,
+    name: 'HbA1c Test',
+    date: 'Sep 20, 2025',
+    type: 'Diabetes Screening',
+    status: 'analyzed'
+  }
+];
+
+export function MobileProfile({ language, onLogout, navigation }: MobileProfileProps) {
+  const [activeTab, setActiveTab] = useState<'profile' | 'myoil' | 'healthreports' | 'settings'>('profile');
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [showUploadReport, setShowUploadReport] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   
-  // Add family member modal state
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Array<{ _id: string; email: string; name: string; avatar?: string }>>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<{ _id: string; email: string; name: string } | null>(null);
-  const [selectedRelation, setSelectedRelation] = useState('');
+  // Settings state
+  const [notifications, setNotifications] = useState(true);
+  const [biometrics, setBiometrics] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  const cpsScore = 847;
+  const totalPoints = 3450;
+  const userName = "Rajesh Sharma";
+  const userInitials = "RS";
 
   const text = {
     en: {
-      profile: 'Profile',
-      subtitle: 'Track your progress',
-      overview: 'Overview',
-      family: 'Family',
-      achievements: 'Achievements',
+      myProfile: 'My Profile',
+      myOil: 'My Oil',
+      healthReports: 'My Health',
       settings: 'Settings',
-      cpsScore: 'CPS Score',
-      totalPoints: 'Total Points',
-      currentStreak: 'Streak',
-      days: 'days',
-      members: 'members',
-      consumption: 'Daily Consumption',
-      ml: 'ml',
-      edit: 'Edit Profile',
+      personalInfo: 'Personal Information',
+      householdDetails: 'Household Details',
+      familyConsumption: 'Family Oil Consumption',
+      familyMembers: 'Family Members',
+      verification: 'Verification & Trust',
+      achievementsCPS: 'Achievements & CPS Score',
+      rewards: 'Rewards',
+      settingsTitle: 'Settings',
+      helpSupport: 'Help & Support',
       logout: 'Logout',
-      unlocked: 'Unlocked',
-      locked: 'Locked',
-      points: 'points',
-      addFamily: 'Add Family Member',
-      searchUsers: 'Search by email or name...',
-      selectRelation: 'Select Relation',
-      add: 'Add',
-      cancel: 'Cancel',
-      noResults: 'No users found',
-      remove: 'Remove',
+      currentOil: 'Current Oil in Use',
+      nutritionalProfile: 'Nutritional Profile',
+      nutritionFacts: 'Nutrition Facts (per 100ml)',
+      certifications: 'Certifications & Standards',
+      productBadges: 'Product Badges',
+      changeOil: 'Change/Update Current Oil',
+      healthReportsTitle: 'Your Health Reports',
+      uploadNew: 'Upload New Report',
+      latestReport: 'Latest Report Analysis',
+      allReports: 'All Reports',
+      healthTrends: 'Health Progress Trends',
+      edit: 'Edit',
+      addMember: 'Add Member',
+      phone: 'Phone',
+      email: 'Email',
+      dateOfBirth: 'Date of Birth',
+      address: 'Address',
+      familySize: 'Family Size',
+      members: 'members',
+      avgConsumption: 'Avg. Daily Oil Consumption',
+      verified: 'Verified',
+      aadhaarVerified: 'Aadhaar Verified',
+      phoneVerified: 'Phone Verified',
+      healthScoreLabel: 'Health Score',
+      remaining: 'Remaining',
+      daysLeft: 'Days Left',
+      avgDailyUse: 'Avg. Daily Use',
+      purchased: 'Purchased',
+      viewDetails: 'View Details',
+      redeemReward: 'Redeem',
+      notEnough: 'Not Enough Points',
+      notifications: 'Notifications',
+      privacy: 'Privacy Settings',
+      language: 'Language',
+      units: 'Units Preference',
+      contactSupport: 'Contact Support',
+      faq: 'FAQ',
+      reportBug: 'Report a Bug',
+      uploadReport: 'Upload Report',
+      analyzed: 'Analyzed',
+      pending: 'Pending',
+      account: 'Account',
+      editProfile: 'Edit Profile',
+      updatePersonalInfo: 'Update your personal information',
+      managePrivacy: 'Manage your privacy preferences',
+      changePassword: 'Change Password',
+      updatePassword: 'Update your password',
+      preferences: 'Preferences',
+      pushNotifications: 'Push Notifications',
+      dailyReminders: 'Receive daily reminders and updates',
+      darkMode: 'Dark Mode',
+      biometricLogin: 'Biometric Login',
+      useBiometric: 'Use fingerprint or face ID',
+      healthGoals: 'Health Goals',
+      myGoals: 'My Goals',
+      viewManageGoals: 'View and manage your health goals',
+      goalSettings: 'Goal Settings',
+      configureGoals: 'Configure goal tracking preferences',
+      connectedDevices: 'Connected Devices',
+      deviceManagement: 'Device Management',
+      manageDevices: 'Manage your smart kitchen devices',
+      support: 'Support',
+      helpAndSupport: 'Help & Support',
+      faqsSupport: 'FAQs and customer support',
+      termsOfService: 'Terms of Service',
+      privacyPolicy: 'Privacy Policy',
+      rateApp: 'Rate the App',
+      data: 'Data',
+      exportData: 'Export Data',
+      downloadData: 'Download your health data',
+      clearCache: 'Clear Cache',
+      freeStorage: 'Free up storage space',
+      dangerZone: 'Danger Zone',
+      deleteAccount: 'Delete Account',
+      permanentlyDelete: 'Permanently delete your account',
+      appVersion: 'SwasthTel v1.0.0',
+      copyright: '© 2025 SwasthTel. All rights reserved.',
     },
     hi: {
-      profile: 'प्रोफ़ाइल',
-      subtitle: 'अपनी प्रगति ट्रैक करें',
-      overview: 'अवलोकन',
-      family: 'परिवार',
-      achievements: 'उपलब्धियाँ',
+      myProfile: 'मेरी प्रोफ़ाइल',
+      myOil: 'मेरा तेल',
+      healthReports: 'स्वास्थ्य रिपोर्ट',
       settings: 'सेटिंग्स',
-      cpsScore: 'CPS स्कोर',
-      totalPoints: 'कुल अंक',
-      currentStreak: 'स्ट्रीक',
-      days: 'दिन',
-      members: 'सदस्य',
-      consumption: 'दैनिक खपत',
-      ml: 'मिली',
-      edit: 'प्रोफ़ाइल संपादित करें',
+      personalInfo: 'व्यक्तिगत जानकारी',
+      householdDetails: 'घरेलू विवरण',
+      familyConsumption: 'परिवार तेल खपत',
+      familyMembers: 'परिवार के सदस्य',
+      verification: 'सत्यापन और विश्वास',
+      achievementsCPS: 'उपलब्धियाँ और CPS स्कोर',
+      rewards: 'पुरस्कार',
+      settingsTitle: 'सेटिंग्स',
+      helpSupport: 'सहायता और समर्थन',
       logout: 'लॉगआउट',
-      unlocked: 'अनलॉक',
-      locked: 'लॉक',
-      points: 'अंक',
-      addFamily: 'परिवार का सदस्य जोड़ें',
-      searchUsers: 'ईमेल या नाम से खोजें...',
-      selectRelation: 'संबंध चुनें',
-      add: 'जोड़ें',
-      cancel: 'रद्द करें',
-      noResults: 'कोई उपयोगकर्ता नहीं मिला',
-      remove: 'हटाएं',
+      currentOil: 'वर्तमान में उपयोग में तेल',
+      nutritionalProfile: 'पोषण प्रोफ़ाइल',
+      nutritionFacts: 'पोषण तथ्य (प्रति 100ml)',
+      certifications: 'प्रमाणपत्र और मानक',
+      productBadges: 'उत्पाद बैज',
+      changeOil: 'तेल बदलें/अपडेट करें',
+      healthReportsTitle: 'आपकी स्वास्थ्य रिपोर्ट',
+      uploadNew: 'नई रिपोर्ट अपलोड करें',
+      latestReport: 'नवीनतम रिपोर्ट विश्लेषण',
+      allReports: 'सभी रिपोर्ट',
+      healthTrends: 'स्वास्थ्य प्रगति रुझान',
+      edit: 'संपादित करें',
+      addMember: 'सदस्य जोड़ें',
+      phone: 'फोन',
+      email: 'ईमेल',
+      dateOfBirth: 'जन्म तिथि',
+      address: 'पता',
+      familySize: 'परिवार का आकार',
+      members: 'सदस्य',
+      avgConsumption: 'औसत दैनिक तेल खपत',
+      verified: 'सत्यापित',
+      aadhaarVerified: 'आधार सत्यापित',
+      phoneVerified: 'फोन सत्यापित',
+      healthScoreLabel: 'स्वास्थ्य स्कोर',
+      remaining: 'शेष',
+      daysLeft: 'दिन शेष',
+      avgDailyUse: 'औसत दैनिक उपयोग',
+      purchased: 'खरीदा गया',
+      viewDetails: 'विवरण देखें',
+      redeemReward: 'रिडीम करें',
+      notEnough: 'पर्याप्त अंक नहीं',
+      notifications: 'सूचनाएं',
+      privacy: 'गोपनीयता सेटिंग्स',
+      language: 'भाषा',
+      units: 'इकाई प्राथमिकता',
+      contactSupport: 'समर्थन से संपर्क करें',
+      faq: 'अक्सर पूछे जाने वाले प्रश्न',
+      reportBug: 'बग रिपोर्ट करें',
+      uploadReport: 'रिपोर्ट अपलोड करें',
+      analyzed: 'विश्लेषण किया गया',
+      pending: 'लंबित',
+      account: 'खाता',
+      editProfile: 'प्रोफाइल संपादित करें',
+      updatePersonalInfo: 'अपनी व्यक्तिगत जानकारी अपडेट करें',
+      managePrivacy: 'अपनी गोपनीयता प्राथमिकताएं प्रबंधित करें',
+      changePassword: 'पासवर्ड बदलें',
+      updatePassword: 'अपना पासवर्ड अपडेट करें',
+      preferences: 'प्राथमिकताएं',
+      pushNotifications: 'पुश नोटिफिकेशन',
+      dailyReminders: 'दैनिक अनुस्मारक और अपडेट प्राप्त करें',
+      darkMode: 'डार्क मोड',
+      biometricLogin: 'बायोमेट्रिक लॉगिन',
+      useBiometric: 'फिंगरप्रिंट या फेस आईडी का उपयोग करें',
+      healthGoals: 'स्वास्थ्य लक्ष्य',
+      myGoals: 'मेरे लक्ष्य',
+      viewManageGoals: 'अपने स्वास्थ्य लक्ष्यों को देखें और प्रबंधित करें',
+      goalSettings: 'लक्ष्य सेटिंग्स',
+      configureGoals: 'लक्ष्य ट्रैकिंग प्राथमिकताएं कॉन्फ़िगर करें',
+      connectedDevices: 'कनेक्टेड डिवाइस',
+      deviceManagement: 'डिवाइस प्रबंधन',
+      manageDevices: 'अपने स्मार्ट किचन डिवाइस प्रबंधित करें',
+      support: 'समर्थन',
+      helpAndSupport: 'सहायता और समर्थन',
+      faqsSupport: 'अक्सर पूछे जाने वाले प्रश्न और ग्राहक समर्थन',
+      termsOfService: 'सेवा की शर्तें',
+      privacyPolicy: 'गोपनीयता नीति',
+      rateApp: 'ऐप को रेट करें',
+      data: 'डेटा',
+      exportData: 'डेटा निर्यात करें',
+      downloadData: 'अपना स्वास्थ्य डेटा डाउनलोड करें',
+      clearCache: 'कैश साफ़ करें',
+      freeStorage: 'भंडारण स्थान खाली करें',
+      dangerZone: 'खतरा क्षेत्र',
+      deleteAccount: 'खाता हटाएं',
+      permanentlyDelete: 'अपना खाता स्थायी रूप से हटाएं',
+      appVersion: 'SwasthTel v1.0.0',
+      copyright: '© 2025 SwasthTel। सर्वाधिकार सुरक्षित।',
     },
   };
 
   const t = text[language as keyof typeof text] || text.en;
 
-  const totalPoints = achievements
-    .filter(a => a.unlocked)
-    .reduce((sum, a) => sum + a.points, 0);
-
-  // Load family members
-  const loadFamilyMembers = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiService.getFamilyMembers();
-      if (response.success && response.data) {
-        setFamilyMembers(response.data);
-      } else if ((response as any).familyMembers) {
-        setFamilyMembers((response as any).familyMembers as FamilyMember[]);
-      }
-    } catch (error) {
-      console.error('Failed to load family members:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedTab === 'family') {
-      loadFamilyMembers();
-    }
-  }, [selectedTab, loadFamilyMembers]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadFamilyMembers();
-    setRefreshing(false);
-  }, [loadFamilyMembers]);
-
-  // Search users
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    if (query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    
-    try {
-      setIsSearching(true);
-      const response = await apiService.searchUsers(query);
-      if (response.success && (response as any).users) {
-        setSearchResults((response as any).users);
-      }
-    } catch (error) {
-      console.error('Search failed:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Add family member
-  const handleAddFamilyMember = async () => {
-    if (!selectedUser || !selectedRelation) {
-      Alert.alert('Error', 'Please select a user and relation');
-      return;
-    }
-    
-    try {
-      setIsLoading(true);
-      const response = await apiService.addFamilyMember(selectedUser._id, selectedRelation);
-      if (response.success) {
-        Alert.alert('Success', 'Family member added successfully');
-        setShowAddModal(false);
-        setSelectedUser(null);
-        setSelectedRelation('');
-        setSearchQuery('');
-        setSearchResults([]);
-        loadFamilyMembers();
-      } else {
-        Alert.alert('Error', response.message || 'Failed to add family member');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to add family member');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Remove family member
-  const handleRemoveFamilyMember = async (userId: string, name: string) => {
-    Alert.alert(
-      'Remove Family Member',
-      `Are you sure you want to remove ${name} from your family?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await apiService.removeFamilyMember(userId);
-              if (response.success) {
-                loadFamilyMembers();
-              }
-            } catch (error) {
-              Alert.alert('Error', 'Failed to remove family member');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // Get display name
-  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
-  const displayEmail = user?.email || '';
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
-        <View style={styles.profileHeader}>
-          <View style={[styles.avatar, isSmallScreen && styles.avatarSmall, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.2)' }]}>
-            <Ionicons name="person" size={isSmallScreen ? 30 : 40} color="#ffffff" />
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{userInitials}</Text>
+            </View>
+            <View style={styles.headerInfo}>
+              <Text style={styles.userName}>{userName}</Text>
+              <Text style={styles.userStats}>
+                CPS Score: {cpsScore} • {totalPoints} pts
+              </Text>
+            </View>
           </View>
-          <View style={styles.profileInfo}>
-            <Text style={[styles.profileName, isSmallScreen && styles.profileNameSmall]} numberOfLines={1}>
-              {displayName}
-            </Text>
-            <Text style={[styles.profileEmail, isSmallScreen && styles.profileEmailSmall]} numberOfLines={1}>
-              {displayEmail}
-            </Text>
-          </View>
-        </View>
 
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          <View style={[styles.statCard, isSmallScreen && styles.statCardSmall, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.1)' }]}>
-            <Text style={[styles.statValue, isSmallScreen && styles.statValueSmall]}>
-              {user?.healthRiskLevel ? 100 - user.healthRiskLevel : 92}
-            </Text>
-            <Text style={[styles.statLabel, isSmallScreen && styles.statLabelSmall]}>{t.cpsScore}</Text>
-          </View>
-          <View style={[styles.statCard, isSmallScreen && styles.statCardSmall, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.1)' }]}>
-            <Text style={[styles.statValue, isSmallScreen && styles.statValueSmall]}>{totalPoints}</Text>
-            <Text style={[styles.statLabel, isSmallScreen && styles.statLabelSmall]}>{t.totalPoints}</Text>
-          </View>
-          <View style={[styles.statCard, isSmallScreen && styles.statCardSmall, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.1)' }]}>
-            <Text style={[styles.statValue, isSmallScreen && styles.statValueSmall]}>45</Text>
-            <Text style={[styles.statLabel, isSmallScreen && styles.statLabelSmall]}>{t.currentStreak}</Text>
-          </View>
-        </View>
-
-        {/* Tabs */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabsScroll}
-          contentContainerStyle={styles.tabs}
-        >
-          {['overview', 'family', 'achievements', 'settings'].map((tab) => (
+          {/* Tabs */}
+          <View style={styles.tabs}>
             <TouchableOpacity
-              key={tab}
-              style={[styles.tab, selectedTab === tab && [styles.tabActive, { backgroundColor: colors.background }]]}
-              onPress={() => setSelectedTab(tab)}
+              style={[styles.tab, activeTab === 'profile' && styles.tabActive]}
+              onPress={() => setActiveTab('profile')}
             >
-              <Text style={[
-                styles.tabText, 
-                selectedTab === tab && [styles.tabTextActive, { color: colors.primary }],
-                isSmallScreen && styles.tabTextSmall
-              ]}>
-                {t[tab as keyof typeof t]}
+              <Text style={[styles.tabText, activeTab === 'profile' && styles.tabTextActive]}>
+                {t.myProfile}
               </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Content */}
-      <ScrollView 
-        style={styles.content} 
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
-      >
-        {selectedTab === 'overview' && (
-          <View>
-            <Card style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <CardContent style={styles.cardContent}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="analytics" size={24} color={colors.primary} />
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Stats</Text>
-                </View>
-                <View style={styles.quickStats}>
-                  <View style={styles.quickStat}>
-                    <Text style={[styles.quickStatValue, isSmallScreen && styles.quickStatValueSmall, { color: colors.primary }]}>
-                      {user?.dailyOilLimit || 35} ml
-                    </Text>
-                    <Text style={[styles.quickStatLabel, { color: colors.textSecondary }]}>Daily Limit</Text>
-                  </View>
-                  <View style={styles.quickStat}>
-                    <Text style={[styles.quickStatValue, isSmallScreen && styles.quickStatValueSmall, { color: colors.primary }]}>
-                      {user?.bmi?.toFixed(1) || '-'}
-                    </Text>
-                    <Text style={[styles.quickStatLabel, { color: colors.textSecondary }]}>BMI</Text>
-                  </View>
-                  <View style={styles.quickStat}>
-                    <Text style={[styles.quickStatValue, isSmallScreen && styles.quickStatValueSmall, { color: colors.primary }]}>
-                      {familyMembers.length + 1}
-                    </Text>
-                    <Text style={[styles.quickStatLabel, { color: colors.textSecondary }]}>Family</Text>
-                  </View>
-                </View>
-              </CardContent>
-            </Card>
-
-            {/* User Details Card */}
-            <Card style={[styles.card, { backgroundColor: colors.cardBackground }]}>
-              <CardContent style={styles.cardContent}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="person" size={24} color={colors.primary} />
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Details</Text>
-                </View>
-                <View style={styles.detailsGrid}>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Age</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>{user?.age || '-'}</Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Gender</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>{user?.gender || '-'}</Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Height</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>{user?.height ? `${user.height} cm` : '-'}</Text>
-                  </View>
-                  <View style={styles.detailItem}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Weight</Text>
-                    <Text style={[styles.detailValue, { color: colors.text }]}>{user?.weight ? `${user.weight} kg` : '-'}</Text>
-                  </View>
-                </View>
-              </CardContent>
-            </Card>
-
-            <Button
-              onPress={() => navigation.navigate('EditProfile')}
-              style={styles.editButton}
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'myoil' && styles.tabActive]}
+              onPress={() => setActiveTab('myoil')}
             >
-              {t.edit}
-            </Button>
+              <Text style={[styles.tabText, activeTab === 'myoil' && styles.tabTextActive]}>
+                {t.myOil}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'healthreports' && styles.tabActive]}
+              onPress={() => setActiveTab('healthreports')}
+            >
+              <Text style={[styles.tabText, activeTab === 'healthreports' && styles.tabTextActive]}>
+                {t.healthReports}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'settings' && styles.tabActive]}
+              onPress={() => setActiveTab('settings')}
+            >
+              <Text style={[styles.tabText, activeTab === 'settings' && styles.tabTextActive]}>
+                {t.settings}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-            {/* Logout Button */}
-            <TouchableOpacity style={[styles.logoutButton, { backgroundColor: colors.error }]} onPress={onLogout}>
-              <Ionicons name="log-out-outline" size={20} color="#ffffff" />
-              <Text style={styles.logoutButtonText}>{t.logout}</Text>
+        {/* Profile Tab */}
+        {activeTab === 'profile' && (
+          <View style={styles.content}>
+            {/* Personal Information */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{t.personalInfo}</Text>
+                <TouchableOpacity onPress={() => setShowEditProfile(true)}>
+                  <Text style={styles.editButton}>{t.edit}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.card}>
+                <View style={styles.infoRow}>
+                  <Ionicons name="call" size={20} color="#1b4a5a" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>{t.phone}</Text>
+                    <Text style={styles.infoValue}>+91 98765 43210</Text>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.infoRow}>
+                  <Ionicons name="mail" size={20} color="#1b4a5a" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>{t.email}</Text>
+                    <Text style={styles.infoValue}>rajesh.sharma@example.com</Text>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.infoRow}>
+                  <Ionicons name="calendar" size={20} color="#1b4a5a" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>{t.dateOfBirth}</Text>
+                    <Text style={styles.infoValue}>January 15, 1983</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Household Details */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.householdDetails}</Text>
+              <View style={styles.card}>
+                <View style={styles.infoRow}>
+                  <Ionicons name="home" size={20} color="#1b4a5a" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>{t.address}</Text>
+                    <Text style={styles.infoValue}>Mumbai, Maharashtra</Text>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.infoRow}>
+                  <Ionicons name="people" size={20} color="#1b4a5a" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>{t.familySize}</Text>
+                    <Text style={styles.infoValue}>4 {t.members}</Text>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.infoRow}>
+                  <Ionicons name="water" size={20} color="#1b4a5a" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>{t.avgConsumption}</Text>
+                    <Text style={styles.infoValue}>120 ml</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Family Members */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{t.familyMembers}</Text>
+                <TouchableOpacity onPress={() => setShowAddMember(true)}>
+                  <Text style={styles.addButton}>{t.addMember}</Text>
+                </TouchableOpacity>
+              </View>
+              {familyMembers.map((member) => (
+                <View key={member.id} style={styles.memberCard}>
+                  <View style={styles.memberAvatar}>
+                    <Text style={styles.memberAvatarText}>{member.avatar}</Text>
+                  </View>
+                  <View style={styles.memberInfo}>
+                    <Text style={styles.memberName}>{member.name}</Text>
+                    <Text style={styles.memberDetails}>
+                      {member.relation} • {member.age} yrs • {member.gender}
+                    </Text>
+                    <View style={styles.memberStats}>
+                      <Text style={styles.memberStat}>
+                        {member.dailyConsumption} ml/day
+                      </Text>
+                      <View style={[styles.statusBadge, member.status === 'Excellent' && styles.statusExcellent]}>
+                        <Text style={styles.statusText}>{member.status}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* Verification */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.verification}</Text>
+              <LinearGradient
+                colors={['#dcfce7', '#d1fae5']}
+                style={styles.verificationCard}
+              >
+                <View style={styles.verificationRow}>
+                  <Ionicons name="shield-checkmark" size={24} color="#16a34a" />
+                  <View style={styles.verificationInfo}>
+                    <Text style={styles.verificationTitle}>{t.aadhaarVerified}</Text>
+                    <Text style={styles.verificationSubtitle}>XXXX-XXXX-4567</Text>
+                  </View>
+                  <Ionicons name="checkmark-circle" size={24} color="#16a34a" />
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.verificationRow}>
+                  <Ionicons name="call" size={24} color="#16a34a" />
+                  <View style={styles.verificationInfo}>
+                    <Text style={styles.verificationTitle}>{t.phoneVerified}</Text>
+                    <Text style={styles.verificationSubtitle}>+91 98765 43210</Text>
+                  </View>
+                  <Ionicons name="checkmark-circle" size={24} color="#16a34a" />
+                </View>
+              </LinearGradient>
+            </View>
+
+            {/* Achievements */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{t.achievementsCPS}</Text>
+                <View style={styles.cpsBadge}>
+                  <Text style={styles.cpsText}>{cpsScore}</Text>
+                </View>
+              </View>
+              
+              <LinearGradient
+                colors={['#fef3c7', '#fde68a']}
+                style={styles.cpsCard}
+              >
+                <Text style={styles.cpsTitle}>Community Performance Score</Text>
+                <Text style={styles.cpsScore}>{cpsScore}</Text>
+                <Text style={styles.cpsRank}>Top 15% in your community</Text>
+              </LinearGradient>
+
+              <View style={styles.achievementsGrid}>
+                {achievements.map((achievement) => (
+                  <View
+                    key={achievement.id}
+                    style={[
+                      styles.achievementCard,
+                      !achievement.unlocked && styles.achievementLocked
+                    ]}
+                  >
+                    <Ionicons
+                      name={achievement.icon as any}
+                      size={32}
+                      color={achievement.unlocked ? '#fcaf56' : '#d1d5db'}
+                    />
+                    <Text style={styles.achievementTitle}>{achievement.title}</Text>
+                    <Text style={styles.achievementPoints}>+{achievement.points}</Text>
+                    {achievement.unlocked && (
+                      <View style={styles.unlockedBadge}>
+                        <Ionicons name="checkmark" size={12} color="#ffffff" />
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Rewards */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{t.rewards}</Text>
+                <View style={styles.pointsBadge}>
+                  <Ionicons name="gift" size={16} color="#fcaf56" />
+                  <Text style={styles.pointsText}>{totalPoints} pts</Text>
+                </View>
+              </View>
+              {rewards.map((reward) => (
+                <View key={reward.id} style={styles.rewardCard}>
+                  <View style={styles.rewardInfo}>
+                    <Text style={styles.rewardName}>{reward.name}</Text>
+                    <Text style={styles.rewardPoints}>{reward.points} points</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.redeemButton,
+                      !reward.available && styles.redeemButtonDisabled
+                    ]}
+                    disabled={!reward.available}
+                  >
+                    <Text style={styles.redeemText}>
+                      {reward.available ? t.redeemReward : t.notEnough}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+
+            {/* Logout */}
+            <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
+              <Ionicons name="log-out" size={20} color="#ffffff" />
+              <Text style={styles.logoutText}>{t.logout}</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {selectedTab === 'family' && (
-          <View>
-            <View style={styles.familyHeader}>
-              <Text style={[styles.sectionTitleText, { color: colors.text }]}>Family Members</Text>
-              <TouchableOpacity 
-                style={styles.addFamilyButton}
-                onPress={() => setShowAddModal(true)}
-              >
-                <Ionicons name="add-circle" size={24} color={colors.primary} />
-                <Text style={[styles.addFamilyText, { color: colors.primary }]}>{t.addFamily}</Text>
-              </TouchableOpacity>
+        {/* My Oil Tab */}
+        {activeTab === 'myoil' && (
+          <View style={styles.content}>
+            {/* Current Oil Overview */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.currentOil}</Text>
+              <View style={styles.oilCard}>
+                <View style={styles.oilHeader}>
+                  <View>
+                    <Text style={styles.oilName}>{currentOil.name}</Text>
+                    <Text style={styles.oilBrand}>{currentOil.brand}</Text>
+                  </View>
+                  <View style={styles.healthScoreBadge}>
+                    <Text style={styles.healthScoreText}>{currentOil.healthScore}</Text>
+                    <Text style={styles.healthScoreLabel}>Score</Text>
+                  </View>
+                </View>
+
+                <View style={styles.oilStats}>
+                  <View style={styles.oilStat}>
+                    <Text style={styles.oilStatLabel}>{t.remaining}</Text>
+                    <Text style={styles.oilStatValue}>{currentOil.remaining}</Text>
+                  </View>
+                  <View style={styles.oilStat}>
+                    <Text style={styles.oilStatLabel}>{t.daysLeft}</Text>
+                    <Text style={styles.oilStatValue}>{currentOil.daysLeft}</Text>
+                  </View>
+                  <View style={styles.oilStat}>
+                    <Text style={styles.oilStatLabel}>{t.avgDailyUse}</Text>
+                    <Text style={styles.oilStatValue}>{currentOil.avgDailyUse}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.oilDetails}>
+                  <Text style={styles.oilDetailText}>
+                    <Text style={styles.oilDetailLabel}>{t.purchased}: </Text>
+                    {currentOil.purchaseDate}
+                  </Text>
+                  <Text style={styles.oilDetailText}>
+                    <Text style={styles.oilDetailLabel}>GST: </Text>
+                    {currentOil.gst}
+                  </Text>
+                  <Text style={styles.oilDetailText}>
+                    <Text style={styles.oilDetailLabel}>TFA: </Text>
+                    {currentOil.tfa}
+                  </Text>
+                </View>
+
+                <View style={styles.oilBadges}>
+                  {currentOil.badges.map((badge, index) => (
+                    <View key={index} style={styles.oilBadge}>
+                      <Text style={styles.oilBadgeText}>{badge}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
             </View>
 
-            {isLoading ? (
-              <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
-            ) : familyMembers.length === 0 ? (
-              <Card style={[styles.emptyCard, { backgroundColor: colors.cardBackground }]}>
-                <CardContent style={styles.emptyContent}>
-                  <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
-                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No family members yet</Text>
-                  <Text style={[styles.emptySubtext, { color: colors.textTertiary }]}>Add family members to track their health together</Text>
-                </CardContent>
-              </Card>
-            ) : (
-              familyMembers.map((member) => (
-                <Card key={member._id} style={[styles.memberCard, { backgroundColor: colors.cardBackground }]}>
-                  <CardContent style={styles.memberContent}>
-                    <View style={styles.memberAvatar}>
-                      <Ionicons name="person-circle" size={40} color={colors.primary} />
-                    </View>
-                    <View style={styles.memberInfo}>
-                      <Text style={[styles.memberName, { color: colors.text }]}>{member.name}</Text>
-                      <Text style={[styles.memberRelation, { color: colors.primary }]}>
-                        {member.relation.charAt(0).toUpperCase() + member.relation.slice(1)}
+            {/* Nutritional Profile */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.nutritionalProfile}</Text>
+              <View style={styles.card}>
+                <View style={styles.nutritionRow}>
+                  <Text style={styles.nutritionLabel}>PUFA</Text>
+                  <View style={styles.nutritionBar}>
+                    <View style={[styles.nutritionFill, { width: currentOil.pufa as any }]} />
+                  </View>
+                  <Text style={styles.nutritionValue}>{currentOil.pufa}</Text>
+                </View>
+                <View style={styles.nutritionRow}>
+                  <Text style={styles.nutritionLabel}>MUFA</Text>
+                  <View style={styles.nutritionBar}>
+                    <View style={[styles.nutritionFill, { width: currentOil.mufa as any, backgroundColor: '#3b82f6' }]} />
+                  </View>
+                  <Text style={styles.nutritionValue}>{currentOil.mufa}</Text>
+                </View>
+                <View style={styles.nutritionRow}>
+                  <Text style={styles.nutritionLabel}>SFA</Text>
+                  <View style={styles.nutritionBar}>
+                    <View style={[styles.nutritionFill, { width: currentOil.sfa as any, backgroundColor: '#ef4444' }]} />
+                  </View>
+                  <Text style={styles.nutritionValue}>{currentOil.sfa}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Nutrition Facts */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.nutritionFacts}</Text>
+              <View style={styles.card}>
+                {Object.entries(currentOil.nutritionPer100ml).map(([key, value], index) => (
+                  <View key={index}>
+                    {index > 0 && <View style={styles.divider} />}
+                    <View style={styles.nutritionFactRow}>
+                      <Text style={styles.nutritionFactLabel}>{key}</Text>
+                      <Text style={styles.nutritionFactValue}>
+                        {Array.isArray(value) ? value.join(', ') : value}
                       </Text>
-                      <Text style={[styles.memberEmail, { color: colors.textSecondary }]}>{member.email}</Text>
                     </View>
-                    <TouchableOpacity 
-                      style={styles.removeButton}
-                      onPress={() => handleRemoveFamilyMember(member._id, member.name)}
-                    >
-                      <Ionicons name="close-circle" size={24} color={colors.error} />
-                    </TouchableOpacity>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Certifications */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.certifications}</Text>
+              <View style={styles.certificationsRow}>
+                {currentOil.certifications.map((cert, index) => (
+                  <View key={index} style={styles.certificationBadge}>
+                    <Ionicons name="shield-checkmark" size={20} color="#16a34a" />
+                    <Text style={styles.certificationText}>{cert}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Change Oil Button */}
+            <TouchableOpacity style={styles.changeOilButton}>
+              <Ionicons name="water" size={20} color="#ffffff" />
+              <Text style={styles.changeOilText}>{t.changeOil}</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        {selectedTab === 'achievements' && (
-          <View>
-            <Text style={[styles.sectionTitleText, { color: colors.text }]}>Your Achievements</Text>
-            <View style={styles.achievementsGrid}>
-              {achievements.map((achievement) => (
-                <View key={achievement.id} style={[
-                  styles.achievementCard,
-                  { width: (SCREEN_WIDTH - 48) / 2, backgroundColor: colors.cardBackground }
-                ]}>
-                  <View style={[
-                    styles.achievementIcon,
-                    { backgroundColor: colors.primary + '15' },
-                    !achievement.unlocked && [styles.achievementIconLocked, { backgroundColor: colors.border }]
-                  ]}>
-                    <Ionicons 
-                      name={achievement.icon as any} 
-                      size={isSmallScreen ? 28 : 32} 
-                      color={achievement.unlocked ? colors.primary : colors.textTertiary} 
-                    />
+        {/* Health Reports Tab */}
+        {activeTab === 'healthreports' && (
+          <View style={styles.content}>
+            {/* Upload Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{t.healthReportsTitle}</Text>
+                <TouchableOpacity onPress={() => setShowUploadReport(true)}>
+                  <Text style={styles.uploadButton}>{t.uploadReport}</Text>
+                </TouchableOpacity>
+              </View>
+              <LinearGradient
+                colors={['#fef3c7', '#fde68a']}
+                style={styles.uploadCard}
+              >
+                <Ionicons name="cloud-upload" size={32} color="#f59e0b" />
+                <Text style={styles.uploadTitle}>Upload New Health Report</Text>
+                <Text style={styles.uploadSubtitle}>
+                  Get AI-powered insights on oil consumption
+                </Text>
+              </LinearGradient>
+            </View>
+
+            {/* Latest Report */}
+            {medicalReports.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t.latestReport}</Text>
+                <View style={styles.reportCard}>
+                  <View style={styles.reportHeader}>
+                    <View>
+                      <Text style={styles.reportName}>{medicalReports[0].name}</Text>
+                      <Text style={styles.reportDate}>{medicalReports[0].date}</Text>
+                    </View>
+                    <View style={styles.analyzedBadge}>
+                      <Text style={styles.analyzedText}>{t.analyzed}</Text>
+                    </View>
                   </View>
-                  <Text style={[styles.achievementTitle, isSmallScreen && styles.achievementTitleSmall, { color: colors.text }]}>
-                    {achievement.title}
-                  </Text>
-                  <Text style={[styles.achievementPoints, { color: colors.textSecondary }]}>
-                    {achievement.points} {t.points}
-                  </Text>
-                  <Badge variant={achievement.unlocked ? 'success' : 'default'}>
-                    <Text style={{
-                      color: achievement.unlocked ? colors.success : colors.textSecondary, 
-                      fontSize: isSmallScreen ? 9 : 10
-                    }}>
-                      {achievement.unlocked ? t.unlocked : t.locked}
-                    </Text>
-                  </Badge>
+
+                  {medicalReports[0].metrics && (
+                    <View style={styles.metricsGrid}>
+                      {Object.entries(medicalReports[0].metrics).map(([key, metric]: [string, any]) => (
+                        <View key={key} style={styles.metricCard}>
+                          <Text style={styles.metricLabel}>{key}</Text>
+                          <Text style={styles.metricValue}>
+                            {metric.value} {metric.unit}
+                          </Text>
+                          <Text style={[
+                            styles.metricStatus,
+                            metric.status === 'normal' && styles.metricNormal,
+                            metric.status === 'good' && styles.metricGood
+                          ]}>
+                            {metric.status}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
+              </View>
+            )}
+
+            {/* All Reports */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.allReports}</Text>
+              {medicalReports.map((report) => (
+                <TouchableOpacity key={report.id} style={styles.reportListCard}>
+                  <View style={styles.reportIcon}>
+                    <Ionicons name="document-text" size={24} color="#1b4a5a" />
+                  </View>
+                  <View style={styles.reportListInfo}>
+                    <Text style={styles.reportListName}>{report.name}</Text>
+                    <Text style={styles.reportListDate}>{report.date}</Text>
+                    <Text style={styles.reportListType}>{report.type}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
               ))}
             </View>
           </View>
         )}
 
-        {selectedTab === 'settings' && (
-          <View>
-            <TouchableOpacity 
-              style={[styles.settingItem, { backgroundColor: colors.cardBackground }]}
-              onPress={() => navigation.navigate('EditProfile')}
-            >
-              <Ionicons name="person-outline" size={24} color={colors.primary} />
-              <Text style={[styles.settingText, { color: colors.text }]}>Edit Profile</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <View style={styles.content}>
+            {/* Account Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.account}</Text>
+              <View style={styles.card}>
+                <TouchableOpacity 
+                  style={styles.settingRow}
+                  onPress={() => navigation?.navigate('EditProfile')}
+                >
+                  <Ionicons name="person-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.editProfile}</Text>
+                    <Text style={styles.settingSubtext}>{t.updatePersonalInfo}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity 
+                  style={styles.settingRow}
+                  onPress={() => navigation?.navigate('PrivacySettings')}
+                >
+                  <Ionicons name="shield-checkmark-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.privacy}</Text>
+                    <Text style={styles.settingSubtext}>{t.managePrivacy}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity style={styles.settingRow}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.changePassword}</Text>
+                    <Text style={styles.settingSubtext}>{t.updatePassword}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-            <TouchableOpacity 
-              style={[styles.settingItem, { backgroundColor: colors.cardBackground }]}
-              onPress={() => navigation.navigate('Notifications')}
-            >
-              <Ionicons name="notifications-outline" size={24} color={colors.primary} />
-              <Text style={[styles.settingText, { color: colors.text }]}>Notifications</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+            {/* Preferences Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.preferences}</Text>
+              <View style={styles.card}>
+                <View style={styles.settingRow}>
+                  <Ionicons name="notifications-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.pushNotifications}</Text>
+                    <Text style={styles.settingSubtext}>{t.dailyReminders}</Text>
+                  </View>
+                  <Switch
+                    value={notifications}
+                    onValueChange={setNotifications}
+                    trackColor={{ false: '#d1d5db', true: '#16a34a' }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.settingRow}>
+                  <Ionicons name="moon-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.darkMode}</Text>
+                  </View>
+                  <Switch
+                    value={darkMode}
+                    onValueChange={setDarkMode}
+                    trackColor={{ false: '#d1d5db', true: '#16a34a' }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.settingRow}>
+                  <Ionicons name="finger-print-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.biometricLogin}</Text>
+                    <Text style={styles.settingSubtext}>{t.useBiometric}</Text>
+                  </View>
+                  <Switch
+                    value={biometrics}
+                    onValueChange={setBiometrics}
+                    trackColor={{ false: '#d1d5db', true: '#16a34a' }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
+                <View style={styles.divider} />
+                <TouchableOpacity style={styles.settingRow}>
+                  <Ionicons name="language-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.language}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-            <TouchableOpacity 
-              style={[styles.settingItem, { backgroundColor: colors.cardBackground }]}
-              onPress={() => navigation.navigate('GoalSettings')}
-            >
-              <Ionicons name="flag-outline" size={24} color={colors.primary} />
-              <Text style={[styles.settingText, { color: colors.text }]}>Goal Settings</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+            {/* Health Goals Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.healthGoals}</Text>
+              <View style={styles.card}>
+                <TouchableOpacity 
+                  style={styles.settingRow}
+                  onPress={() => navigation?.navigate('MyGoals')}
+                >
+                  <Ionicons name="fitness-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.myGoals}</Text>
+                    <Text style={styles.settingSubtext}>{t.viewManageGoals}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity 
+                  style={styles.settingRow}
+                  onPress={() => navigation?.navigate('GoalSettings')}
+                >
+                  <Ionicons name="analytics-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.goalSettings}</Text>
+                    <Text style={styles.settingSubtext}>{t.configureGoals}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-            <TouchableOpacity 
-              style={[styles.settingItem, { backgroundColor: colors.cardBackground }]}
-              onPress={() => navigation.navigate('PrivacySettings')}
-            >
-              <Ionicons name="lock-closed-outline" size={24} color={colors.primary} />
-              <Text style={[styles.settingText, { color: colors.text }]}>Privacy</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+            {/* Connected Devices Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.connectedDevices}</Text>
+              <View style={styles.card}>
+                <TouchableOpacity 
+                  style={styles.settingRow}
+                  onPress={() => navigation?.navigate('DeviceManagement')}
+                >
+                  <Ionicons name="hardware-chip-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.deviceManagement}</Text>
+                    <Text style={styles.settingSubtext}>{t.manageDevices}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-            <TouchableOpacity 
-              style={[styles.settingItem, { backgroundColor: colors.cardBackground }]}
-              onPress={() => navigation.navigate('HelpSupport')}
-            >
-              <Ionicons name="help-circle-outline" size={24} color={colors.primary} />
-              <Text style={[styles.settingText, { color: colors.text }]}>Help & Support</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+            {/* Support Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.support}</Text>
+              <View style={styles.card}>
+                <TouchableOpacity 
+                  style={styles.settingRow}
+                  onPress={() => navigation?.navigate('HelpSupport')}
+                >
+                  <Ionicons name="help-circle-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.helpAndSupport}</Text>
+                    <Text style={styles.settingSubtext}>{t.faqsSupport}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity style={styles.settingRow}>
+                  <Ionicons name="document-text-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.termsOfService}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity style={styles.settingRow}>
+                  <Ionicons name="shield-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.privacyPolicy}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity style={styles.settingRow}>
+                  <Ionicons name="star-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.rateApp}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-            <TouchableOpacity 
-              style={[styles.settingItem, { backgroundColor: colors.cardBackground }]}
-              onPress={() => navigation.navigate('Settings')}
-            >
-              <Ionicons name="settings-outline" size={24} color={colors.primary} />
-              <Text style={[styles.settingText, { color: colors.text }]}>App Settings</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+            {/* Data Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.data}</Text>
+              <View style={styles.card}>
+                <TouchableOpacity style={styles.settingRow}>
+                  <Ionicons name="cloud-download-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.exportData}</Text>
+                    <Text style={styles.settingSubtext}>{t.downloadData}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity 
+                  style={styles.settingRow}
+                  onPress={() => {
+                    Alert.alert(
+                      t.clearCache,
+                      t.freeStorage,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Clear', onPress: () => Alert.alert('Success', 'Cache cleared successfully') },
+                      ]
+                    );
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.clearCache}</Text>
+                    <Text style={styles.settingSubtext}>{t.freeStorage}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-            <TouchableOpacity style={[styles.settingItem, styles.logoutItem, { backgroundColor: colors.cardBackground }]} onPress={onLogout}>
-              <Ionicons name="log-out-outline" size={24} color={colors.error} />
-              <Text style={[styles.settingText, { color: colors.error, fontWeight: '600' }]}>{t.logout}</Text>
+            {/* Danger Zone Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.dangerZone}</Text>
+              <View style={styles.card}>
+                <TouchableOpacity 
+                  style={styles.settingRow}
+                  onPress={() => {
+                    Alert.alert(
+                      t.deleteAccount,
+                      t.permanentlyDelete,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { 
+                          text: 'Delete', 
+                          style: 'destructive',
+                          onPress: () => {
+                            // Handle account deletion
+                          } 
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                  <View style={styles.settingInfo}>
+                    <Text style={[styles.settingText, { color: '#ef4444' }]}>{t.deleteAccount}</Text>
+                    <Text style={styles.settingSubtext}>{t.permanentlyDelete}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#ef4444" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* App Info */}
+            <View style={styles.appInfo}>
+              <Text style={styles.appVersion}>{t.appVersion}</Text>
+              <Text style={styles.appCopyright}>{t.copyright}</Text>
+            </View>
+
+            {/* Logout */}
+            <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
+              <Ionicons name="log-out" size={20} color="#ffffff" />
+              <Text style={styles.logoutText}>{t.logout}</Text>
             </TouchableOpacity>
           </View>
         )}
-        
-        {/* Bottom spacing */}
-        <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* Add Family Member Modal */}
-      <Modal
-        visible={showAddModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowAddModal(false)}
-      >
-        <View style={[styles.modalOverlay, { backgroundColor: colors.overlay }]}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t.addFamily}</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Search Input */}
-            <View style={[styles.searchContainer, { backgroundColor: colors.inputBackground }]}>
-              <Ionicons name="search" size={20} color={colors.textSecondary} />
-              <TextInput
-                style={[styles.searchInput, { color: colors.text }]}
-                placeholder={t.searchUsers}
-                placeholderTextColor={colors.textTertiary}
-                value={searchQuery}
-                onChangeText={handleSearch}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {isSearching && <ActivityIndicator size="small" color={colors.primary} />}
-            </View>
-
-            {/* Search Results */}
-            {searchResults.length > 0 && !selectedUser && (
-              <ScrollView style={styles.searchResults}>
-                {searchResults.map((result) => (
-                  <TouchableOpacity
-                    key={result._id}
-                    style={[styles.searchResultItem, { borderBottomColor: colors.border }]}
-                    onPress={() => {
-                      setSelectedUser(result);
-                      setSearchResults([]);
-                    }}
-                  >
-                    <View style={styles.searchResultAvatar}>
-                      <Ionicons name="person-circle" size={36} color={colors.primary} />
-                    </View>
-                    <View style={styles.searchResultInfo}>
-                      <Text style={[styles.searchResultName, { color: colors.text }]}>{result.name}</Text>
-                      <Text style={[styles.searchResultEmail, { color: colors.textSecondary }]}>{result.email}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-
-            {searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && !selectedUser && (
-              <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>{t.noResults}</Text>
-            )}
-
-            {/* Selected User */}
-            {selectedUser && (
-              <View style={styles.selectedUserContainer}>
-                <View style={[styles.selectedUser, { backgroundColor: colors.primary + '15' }]}>
-                  <Ionicons name="person-circle" size={40} color={colors.primary} />
-                  <View style={styles.selectedUserInfo}>
-                    <Text style={[styles.selectedUserName, { color: colors.primary }]}>{selectedUser.name}</Text>
-                    <Text style={[styles.selectedUserEmail, { color: colors.textSecondary }]}>{selectedUser.email}</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setSelectedUser(null)}>
-                    <Ionicons name="close-circle" size={24} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Relation Selection */}
-                <Text style={[styles.relationLabel, { color: colors.text }]}>{t.selectRelation}</Text>
-                <View style={styles.relationGrid}>
-                  {relationOptions.map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.relationOption,
-                        { borderColor: colors.border, backgroundColor: colors.surface },
-                        selectedRelation === option.value && [styles.relationOptionSelected, { backgroundColor: colors.primary, borderColor: colors.primary }]
-                      ]}
-                      onPress={() => setSelectedRelation(option.value)}
-                    >
-                      <Text style={[
-                        styles.relationOptionText,
-                        { color: colors.text },
-                        selectedRelation === option.value && styles.relationOptionTextSelected
-                      ]}>
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Action Buttons */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity 
-                style={[styles.cancelButton, { borderColor: colors.border }]}
-                onPress={() => {
-                  setShowAddModal(false);
-                  setSelectedUser(null);
-                  setSelectedRelation('');
-                  setSearchQuery('');
-                  setSearchResults([]);
-                }}
-              >
-                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>{t.cancel}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[
-                  styles.addMemberButton,
-                  { backgroundColor: colors.primary },
-                  (!selectedUser || !selectedRelation) && styles.addMemberButtonDisabled
-                ]}
-                onPress={handleAddFamilyMember}
-                disabled={!selectedUser || !selectedRelation || isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.addMemberButtonText}>{t.add}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -674,227 +1101,157 @@ export function MobileProfile({ language, onLogout }: MobileProfileProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fafbfa',
   },
   header: {
+    backgroundColor: '#1b4a5a',
     paddingTop: 60,
-    paddingBottom: 0,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
   },
-  profileHeader: {
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
     gap: 12,
+    marginBottom: 20,
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fcaf56',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  avatarSmall: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 22,
+  avatarText: {
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 4,
   },
-  profileNameSmall: {
+  headerInfo: {
+    flex: 1,
+  },
+  userName: {
     fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
   },
-  profileEmail: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  profileEmailSmall: {
+  userStats: {
     fontSize: 12,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    gap: 8,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-  },
-  statCardSmall: {
-    padding: 8,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 2,
-  },
-  statValueSmall: {
-    fontSize: 18,
-  },
-  statLabel: {
-    fontSize: 10,
     color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-  },
-  statLabelSmall: {
-    fontSize: 9,
-  },
-  tabsScroll: {
-    marginBottom: -1,
+    marginTop: 2,
   },
   tabs: {
-    paddingHorizontal: 12,
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 30,
+    padding: 4,
     gap: 4,
   },
   tab: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 26,
   },
   tabActive: {
-    backgroundColor: '#fafbfa',
+    backgroundColor: '#ffffff',
   },
   tabText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  tabTextSmall: {
     fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
   },
   tabTextActive: {
     color: '#1b4a5a',
     fontWeight: '600',
   },
   content: {
-    flex: 1,
-    padding: 16,
+    padding: 20,
   },
-  card: {
-    marginBottom: 16,
-  },
-  cardContent: {
-    padding: 16,
+  section: {
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#040707',
-  },
-  sectionTitleText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#040707',
-  },
-  quickStats: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  quickStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  quickStatValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
     color: '#1b4a5a',
-    marginBottom: 4,
-  },
-  quickStatValueSmall: {
-    fontSize: 16,
-  },
-  quickStatLabel: {
-    fontSize: 12,
-    color: '#5B5B5B',
-    textAlign: 'center',
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  detailItem: {
-    width: '45%',
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: '#5B5B5B',
-    marginBottom: 4,
-  },
-  detailValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#040707',
   },
   editButton: {
-    marginHorizontal: 0,
-  },
-  familyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  addFamilyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  addFamilyText: {
+    fontSize: 14,
     color: '#1b4a5a',
-    fontWeight: '600',
+    fontWeight: '500',
+  },
+  addButton: {
     fontSize: 14,
+    color: '#1b4a5a',
+    fontWeight: '500',
   },
-  emptyCard: {
-    marginTop: 20,
-  },
-  emptyContent: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
-  },
-  emptySubtext: {
+  uploadButton: {
     fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 8,
+    color: '#fcaf56',
+    fontWeight: '500',
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(27, 74, 90, 0.1)',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#040707',
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E7F2F1',
+    marginVertical: 12,
   },
   memberCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(27, 74, 90, 0.1)',
     marginBottom: 12,
-  },
-  memberContent: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
     gap: 12,
   },
   memberAvatar: {
-    width: 40,
-    height: 40,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#E7F2F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  memberAvatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1b4a5a',
   },
   memberInfo: {
     flex: 1,
@@ -903,254 +1260,523 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#040707',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  memberRelation: {
+  memberDetails: {
+    fontSize: 13,
+    color: '#5B5B5B',
+    marginBottom: 8,
+  },
+  memberStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  memberStat: {
     fontSize: 13,
     color: '#1b4a5a',
     fontWeight: '500',
+  },
+  statusBadge: {
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusExcellent: {
+    backgroundColor: '#fef3c7',
+  },
+  statusText: {
+    fontSize: 11,
+    color: '#16a34a',
+    fontWeight: '500',
+  },
+  verificationCard: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#dcfce7',
+  },
+  verificationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  verificationInfo: {
+    flex: 1,
+  },
+  verificationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#040707',
     marginBottom: 2,
   },
-  memberEmail: {
+  verificationSubtitle: {
     fontSize: 12,
     color: '#5B5B5B',
   },
-  removeButton: {
-    padding: 4,
+  cpsBadge: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  cpsText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#f59e0b',
+  },
+  cpsCard: {
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cpsTitle: {
+    fontSize: 14,
+    color: '#78350f',
+    marginBottom: 8,
+  },
+  cpsScore: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#f59e0b',
+    marginBottom: 4,
+  },
+  cpsRank: {
+    fontSize: 13,
+    color: '#78350f',
   },
   achievementsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    marginTop: 12,
   },
   achievementCard: {
+    width: (width - 64) / 3,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(27, 74, 90, 0.1)',
+    position: 'relative',
+  },
+  achievementLocked: {
+    opacity: 0.5,
+  },
+  achievementTitle: {
+    fontSize: 11,
+    color: '#040707',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  achievementPoints: {
+    fontSize: 12,
+    color: '#fcaf56',
+    fontWeight: '600',
+  },
+  unlockedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#16a34a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  pointsText: {
+    fontSize: 13,
+    color: '#f59e0b',
+    fontWeight: '600',
+  },
+  rewardCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,
-    alignItems: 'center',
-  },
-  achievementIcon: {
-    width: 56,
-    height: 56,
-    backgroundColor: '#E7F2F1',
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  achievementIconLocked: {
-    backgroundColor: '#f0f0f0',
-  },
-  achievementTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#040707',
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  achievementTitleSmall: {
-    fontSize: 11,
-  },
-  achievementPoints: {
-    fontSize: 11,
-    color: '#5B5B5B',
-    marginBottom: 8,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    gap: 12,
-  },
-  settingText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#040707',
-  },
-  logoutItem: {
-    marginTop: 20,
-  },
-  logoutText: {
-    color: '#EF4444',
-    fontWeight: '600',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EF4444',
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 16,
-    gap: 8,
-  },
-  logoutButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
+    borderWidth: 1,
+    borderColor: 'rgba(27, 74, 90, 0.1)',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-    marginBottom: 16,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-  },
-  searchResults: {
-    maxHeight: 200,
-    marginBottom: 16,
-  },
-  searchResultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    gap: 12,
-  },
-  searchResultAvatar: {
-    width: 36,
-    height: 36,
-  },
-  searchResultInfo: {
+  rewardInfo: {
     flex: 1,
   },
-  searchResultName: {
-    fontSize: 15,
+  rewardName: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#040707',
+    marginBottom: 4,
   },
-  searchResultEmail: {
+  rewardPoints: {
     fontSize: 13,
-    color: '#666',
+    color: '#5B5B5B',
   },
-  noResultsText: {
-    textAlign: 'center',
-    color: '#666',
-    marginVertical: 20,
+  redeemButton: {
+    backgroundColor: '#1b4a5a',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  selectedUserContainer: {
-    marginBottom: 20,
+  redeemButtonDisabled: {
+    backgroundColor: '#d1d5db',
   },
-  selectedUser: {
+  redeemText: {
+    fontSize: 12,
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E7F2F1',
-    padding: 12,
-    borderRadius: 12,
     gap: 12,
   },
-  selectedUserInfo: {
+  settingInfo: {
     flex: 1,
   },
-  selectedUserName: {
+  settingText: {
+    fontSize: 14,
+    color: '#040707',
+    fontWeight: '500',
+  },
+  settingSubtext: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    marginTop: 2,
+  },
+  appInfo: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    marginTop: 20,
+  },
+  appVersion: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    marginBottom: 4,
+  },
+  appCopyright: {
+    fontSize: 11,
+    color: '#9ca3af',
+  },
+  logoutButton: {
+    backgroundColor: '#ef4444',
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  oilCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(27, 74, 90, 0.1)',
+  },
+  oilHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  oilName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 4,
+  },
+  oilBrand: {
+    fontSize: 14,
+    color: '#5B5B5B',
+  },
+  healthScoreBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#dcfce7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  healthScoreText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#16a34a',
+  },
+  healthScoreLabel: {
+    fontSize: 10,
+    color: '#16a34a',
+  },
+  oilStats: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  oilStat: {
+    flex: 1,
+    backgroundColor: '#fafbfa',
+    borderRadius: 12,
+    padding: 12,
+  },
+  oilStatLabel: {
+    fontSize: 11,
+    color: '#5B5B5B',
+    marginBottom: 4,
+  },
+  oilStatValue: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1b4a5a',
   },
-  selectedUserEmail: {
+  oilDetails: {
+    marginBottom: 16,
+  },
+  oilDetailText: {
     fontSize: 13,
-    color: '#666',
+    color: '#040707',
+    marginBottom: 6,
   },
-  relationLabel: {
-    fontSize: 14,
+  oilDetailLabel: {
     fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 12,
+    color: '#5B5B5B',
   },
-  relationGrid: {
+  oilBadges: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  relationOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
+  oilBadge: {
+    backgroundColor: '#dbeafe',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  relationOptionSelected: {
-    borderColor: '#1b4a5a',
-    backgroundColor: '#1b4a5a',
+  oilBadgeText: {
+    fontSize: 12,
+    color: '#2563eb',
+    fontWeight: '500',
   },
-  relationOptionText: {
-    fontSize: 14,
-    color: '#333',
+  nutritionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
   },
-  relationOptionTextSelected: {
-    color: '#fff',
+  nutritionLabel: {
+    width: 50,
+    fontSize: 13,
     fontWeight: '600',
+    color: '#040707',
   },
-  modalActions: {
+  nutritionBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#E7F2F1',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  nutritionFill: {
+    height: '100%',
+    backgroundColor: '#16a34a',
+    borderRadius: 4,
+  },
+  nutritionValue: {
+    width: 50,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1b4a5a',
+    textAlign: 'right',
+  },
+  nutritionFactRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  nutritionFactLabel: {
+    fontSize: 13,
+    color: '#5B5B5B',
+    textTransform: 'capitalize',
+  },
+  nutritionFactValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#040707',
+  },
+  certificationsRow: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 20,
   },
-  cancelButton: {
+  certificationBadge: {
     flex: 1,
-    padding: 16,
+    backgroundColor: '#ffffff',
     borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ddd',
-    alignItems: 'center',
+    borderColor: '#dcfce7',
   },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#666',
+  certificationText: {
+    fontSize: 12,
+    color: '#16a34a',
     fontWeight: '600',
+    marginTop: 4,
   },
-  addMemberButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
+  changeOilButton: {
     backgroundColor: '#1b4a5a',
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  changeOilText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  uploadCard: {
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#fef3c7',
+  },
+  uploadTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#78350f',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  uploadSubtitle: {
+    fontSize: 13,
+    color: '#78350f',
+    textAlign: 'center',
+  },
+  reportCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(27, 74, 90, 0.1)',
+  },
+  reportHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  reportName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 4,
+  },
+  reportDate: {
+    fontSize: 13,
+    color: '#5B5B5B',
+  },
+  analyzedBadge: {
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  analyzedText: {
+    fontSize: 11,
+    color: '#16a34a',
+    fontWeight: '600',
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  metricCard: {
+    width: (width - 64) / 2,
+    backgroundColor: '#fafbfa',
+    borderRadius: 12,
+    padding: 12,
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: '#5B5B5B',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  metricValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 4,
+  },
+  metricStatus: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  metricNormal: {
+    color: '#16a34a',
+  },
+  metricGood: {
+    color: '#2563eb',
+  },
+  reportListCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(27, 74, 90, 0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  reportIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E7F2F1',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  addMemberButtonDisabled: {
-    backgroundColor: '#ccc',
+  reportListInfo: {
+    flex: 1,
   },
-  addMemberButtonText: {
-    fontSize: 16,
-    color: '#fff',
+  reportListName: {
+    fontSize: 14,
     fontWeight: '600',
+    color: '#040707',
+    marginBottom: 4,
+  },
+  reportListDate: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    marginBottom: 2,
+  },
+  reportListType: {
+    fontSize: 11,
+    color: '#5B5B5B',
   },
 });
