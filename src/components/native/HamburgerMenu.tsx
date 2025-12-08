@@ -18,6 +18,14 @@ interface HamburgerMenuProps {
 
 const menuItems = [
   {
+    id: 'groups',
+    label: 'My Groups',
+    description: 'Manage family & school groups',
+    icon: 'people' as const,
+    color: '#1b4a5a',
+    bg: '#E7F2F1'
+  },
+  {
     id: 'devices',
     label: 'My IoT Devices',
     description: 'Smart Kitchen Tracker',

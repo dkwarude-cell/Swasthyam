@@ -134,6 +134,26 @@ const userSchema = new mongoose.Schema({
     min: 0,
     max: 100
   },
+  // SwasthaIndex metabolic data
+  bmr: {
+    type: Number, // Basal Metabolic Rate in kcal
+    min: 800,
+    max: 4000
+  },
+  activityLevel: {
+    type: String,
+    enum: ['sedentary', 'lightly-active', 'moderately-active', 'very-active', 'extra-active', ''],
+    default: 'moderately-active'
+  },
+  activityFactor: {
+    type: Number,
+    default: 1.5, // Moderate activity
+    min: 1.2,
+    max: 2.0
+  },
+  tdee: {
+    type: Number // Total Daily Energy Expenditure (computed)
+  },
   
   // Profile
   avatar: {

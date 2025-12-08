@@ -210,6 +210,165 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Update current oil
+  async updateCurrentOil(oilType: string): Promise<ApiResponse<User>> {
+    return this.request<User>(API_ENDPOINTS.AUTH.UPDATE_PROFILE, {
+      method: 'PUT',
+      body: JSON.stringify({ currentOils: [oilType] }),
+    });
+  }
+
+  // Oil consumption endpoints
+  async logOilConsumption(data: OilConsumptionLog): Promise<ApiResponse<OilConsumptionEntry>> {
+    return this.request<OilConsumptionEntry>(API_ENDPOINTS.OIL.LOG, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getOilEntries(params?: { startDate?: string; endDate?: string; limit?: number; page?: number }): Promise<ApiResponse<OilEntriesResponse>> {
+    const queryParams = new URLSearchParams();
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.page) queryParams.append('page', params.page.toString());
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `${API_ENDPOINTS.OIL.ENTRIES}?${queryString}` : API_ENDPOINTS.OIL.ENTRIES;
+    
+    return this.request<OilEntriesResponse>(endpoint, {
+      method: 'GET',
+    });
+  }
+
+  async getTodayOilConsumption(date?: string): Promise<ApiResponse<TodayConsumptionResponse>> {
+    const endpoint = date ? `${API_ENDPOINTS.OIL.TODAY}?date=${encodeURIComponent(date)}` : API_ENDPOINTS.OIL.TODAY;
+    return this.request<TodayConsumptionResponse>(endpoint, {
+      method: 'GET',
+    });
+  }
+
+  async getUserOilStatus(date?: string): Promise<ApiResponse<UserOilStatusResponse>> {
+    const endpoint = date ? `${API_ENDPOINTS.OIL.USER_STATUS}?date=${encodeURIComponent(date)}` : API_ENDPOINTS.OIL.USER_STATUS;
+    return this.request<UserOilStatusResponse>(endpoint, {
+      method: 'GET',
+    });
+  }
+
+  async getWeeklyOilStats(): Promise<ApiResponse<WeeklyStat[]>> {
+    return this.request<WeeklyStat[]>(API_ENDPOINTS.OIL.WEEKLY_STATS, {
+      method: 'GET',
+    });
+  }
+
+  async updateOilEntry(id: string, data: Partial<OilConsumptionLog>): Promise<ApiResponse<OilConsumptionEntry>> {
+    return this.request<OilConsumptionEntry>(`${API_ENDPOINTS.OIL.UPDATE}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteOilEntry(id: string): Promise<ApiResponse<{ dailyTotal: number }>> {
+    return this.request<{ dailyTotal: number }>(`${API_ENDPOINTS.OIL.DELETE}/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Group management endpoints
+  async createGroup(data: CreateGroupData): Promise<ApiResponse<Group>> {
+    return this.request<Group>(API_ENDPOINTS.GROUPS.BASE, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMyGroups(): Promise<ApiResponse<Group[]>> {
+    return this.request<Group[]>(API_ENDPOINTS.GROUPS.BASE, {
+      method: 'GET',
+    });
+  }
+
+  async getPendingInvitations(): Promise<ApiResponse<Group[]>> {
+    return this.request<Group[]>(API_ENDPOINTS.GROUPS.INVITATIONS, {
+      method: 'GET',
+    });
+  }
+
+  async getAdminGroups(): Promise<ApiResponse<Group[]>> {
+    return this.request<Group[]>(API_ENDPOINTS.GROUPS.ADMIN, {
+      method: 'GET',
+    });
+  }
+
+  async getGroup(groupId: string): Promise<ApiResponse<Group>> {
+    return this.request<Group>(API_ENDPOINTS.GROUPS.DETAIL(groupId), {
+      method: 'GET',
+    });
+  }
+
+  async inviteMembers(groupId: string, userIds: string[]): Promise<ApiResponse<any>> {
+    return this.request(API_ENDPOINTS.GROUPS.INVITE(groupId), {
+      method: 'POST',
+      body: JSON.stringify({ userIds }),
+    });
+  }
+
+  async acceptInvitation(groupId: string): Promise<ApiResponse<Group>> {
+    return this.request<Group>(API_ENDPOINTS.GROUPS.ACCEPT(groupId), {
+      method: 'POST',
+    });
+  }
+
+  async rejectInvitation(groupId: string): Promise<ApiResponse<void>> {
+    return this.request<void>(API_ENDPOINTS.GROUPS.REJECT(groupId), {
+      method: 'POST',
+    });
+  }
+
+  async leaveGroup(groupId: string): Promise<ApiResponse<void>> {
+    return this.request<void>(API_ENDPOINTS.GROUPS.LEAVE(groupId), {
+      method: 'POST',
+    });
+  }
+
+  async removeMember(groupId: string, userId: string): Promise<ApiResponse<Group>> {
+    return this.request<Group>(API_ENDPOINTS.GROUPS.REMOVE_MEMBER(groupId, userId), {
+      method: 'DELETE',
+    });
+  }
+
+  async promoteMember(groupId: string, userId: string): Promise<ApiResponse<Group>> {
+    return this.request<Group>(API_ENDPOINTS.GROUPS.PROMOTE(groupId, userId), {
+      method: 'POST',
+    });
+  }
+
+  async updateGroup(groupId: string, data: Partial<CreateGroupData>): Promise<ApiResponse<Group>> {
+    return this.request<Group>(API_ENDPOINTS.GROUPS.UPDATE(groupId), {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteGroup(groupId: string): Promise<ApiResponse<void>> {
+    return this.request<void>(API_ENDPOINTS.GROUPS.DELETE(groupId), {
+      method: 'DELETE',
+    });
+  }
+
+  async searchUsers(query: string): Promise<ApiResponse<User[]>> {
+    return this.request<User[]>(`${API_ENDPOINTS.GROUPS.SEARCH_USERS}?query=${encodeURIComponent(query)}`, {
+      method: 'GET',
+    });
+  }
+
+  async logGroupConsumption(groupId: string, consumptionData: GroupConsumptionItem[]): Promise<ApiResponse<any>> {
+    return this.request(API_ENDPOINTS.OIL.LOG_GROUP, {
+      method: 'POST',
+      body: JSON.stringify({ groupId, consumptionData }),
+    });
+  }
 }
 
 export interface FamilyMember {
@@ -220,6 +379,118 @@ export interface FamilyMember {
   relation: string;
   addedAt: string;
   dailyOilLimit?: number;
+}
+
+export interface OilConsumptionLog {
+  foodName: string;
+  oilType: string;
+  oilAmount: number;
+  quantity: number;
+  unit: 'grams' | 'bowls' | 'pieces';
+  mealType: 'Breakfast' | 'Lunch' | 'Snack' | 'Dinner';
+  members?: string[];
+  consumedAt?: string;
+}
+
+export interface OilConsumptionEntry extends OilConsumptionLog {
+  _id: string;
+  userId: string;
+  consumedAt: string;
+  verified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OilEntriesResponse {
+  entries: OilConsumptionEntry[];
+  dailyTotal: number;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+export interface TodayConsumptionResponse {
+  entries: OilConsumptionEntry[];
+  dailyTotal: number;
+  count: number;
+}
+
+export interface WeeklyStat {
+  _id: string;
+  totalOil: number;
+  entries: number;
+}
+
+export interface UserOilStatusResponse {
+  userId: string;
+  date: string;
+  goalKcal: number;
+  goalMl: number;
+  cumulativeEffKcal: number;
+  remainingKcal: number;
+  remainingMl: number;
+  fillPercent: number;
+  overage: number;
+  eventsCount: number;
+  status: 'within_limit' | 'over_limit';
+}
+
+export interface GroupMember {
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  role: 'admin' | 'member';
+  status: 'pending' | 'active';
+  joinedAt: string;
+}
+
+export interface Group {
+  _id: string;
+  name: string;
+  description?: string;
+  type: 'family' | 'school' | 'community' | 'other';
+  admin: {
+    _id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  members: GroupMember[];
+  settings: {
+    allowMemberInvites: boolean;
+    requireApproval: boolean;
+    autoShareConsumption: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateGroupData {
+  name: string;
+  description?: string;
+  type?: 'family' | 'school' | 'community' | 'other';
+  settings?: {
+    allowMemberInvites?: boolean;
+    requireApproval?: boolean;
+    autoShareConsumption?: boolean;
+  };
+}
+
+export interface GroupConsumptionItem {
+  userId: string;
+  foodName: string;
+  oilType: string;
+  oilAmount: number;
+  quantity: number;
+  unit: 'grams' | 'bowls' | 'pieces';
+  mealType: 'Breakfast' | 'Lunch' | 'Snack' | 'Dinner';
+  consumedAt?: string;
 }
 
 export const apiService = new ApiService();

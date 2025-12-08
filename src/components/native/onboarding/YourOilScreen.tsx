@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
+import { calculateSwasthaIndex } from '../../../utils/swasthaIndex';
 
 interface YourOilScreenProps {
   onNext: (data: any) => void;
@@ -295,6 +296,18 @@ export function YourOilScreen({ onNext, onSkip, onBack, language }: YourOilScree
                   {product.barcode && (
                     <Text style={styles.productBarcode}>Barcode: {product.barcode}</Text>
                   )}
+                  {(() => {
+                    const swasthaData = calculateSwasthaIndex(product.type);
+                    return (
+                      <View style={styles.swasthaContainer}>
+                        <View style={[styles.swasthaBadge, { backgroundColor: swasthaData.color }]}>
+                          <Text style={styles.swasthaScore}>{swasthaData.swastha_index}</Text>
+                          <Text style={styles.swasthaLabel}>Swastha Index</Text>
+                        </View>
+                        <Text style={styles.swasthaCategory}>{swasthaData.rating_category}</Text>
+                      </View>
+                    );
+                  })()}
                   {product.imageUri && (
                     <View style={styles.scannedBadge}>
                       <Ionicons name="camera" size={10} color="#07A996" />
@@ -568,6 +581,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#5B5B5B',
     marginTop: 4,
+  },
+  swasthaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  swasthaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+  },
+  swasthaScore: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  swasthaLabel: {
+    fontSize: 10,
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  swasthaCategory: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    fontWeight: '600',
   },
   scannedBadge: {
     flexDirection: 'row',

@@ -247,6 +247,10 @@ const completeOnboarding = asyncHandler(async (req, res) => {
     gender,
     height,
     weight,
+    bmr,
+    activityLevel,
+    activityFactor,
+    tdee,
     
     // Medical History (Step 2)
     medicalHistory,
@@ -286,6 +290,10 @@ const completeOnboarding = asyncHandler(async (req, res) => {
   if (gender) updateData.gender = gender;
   if (height) updateData.height = Number(height);
   if (weight) updateData.weight = Number(weight);
+  if (bmr) updateData.bmr = Number(bmr);
+  if (activityLevel) updateData.activityLevel = activityLevel;
+  if (activityFactor) updateData.activityFactor = Number(activityFactor);
+  if (tdee) updateData.tdee = Number(tdee);
   if (medicalHistory) updateData.medicalHistory = medicalHistory;
   if (reportType) updateData.reportType = reportType;
   if (mealsPerDay) updateData.mealsPerDay = mealsPerDay;

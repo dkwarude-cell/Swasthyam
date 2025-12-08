@@ -1,11 +1,10 @@
 const mongoose = require('mongoose');
 
-const connectDB = async () => {
+const connectDB = async (retries = 5, delay = 5000) => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      // These options are no longer needed in Mongoose 6+, but kept for reference
-      // useNewUrlParser: true,
-      // useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -28,7 +27,17 @@ const connectDB = async () => {
 
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`);
-    process.exit(1);
+    
+    if (retries > 0) {
+      console.log(`Retrying connection in ${delay / 1000} seconds... (${retries} attempts left)`);
+      setTimeout(() => connectDB(retries - 1, delay), delay);
+    } else {
+      console.error('Could not connect to MongoDB after multiple attempts. Please check:');
+      console.error('1. Your IP is whitelisted in MongoDB Atlas');
+      console.error('2. Your MONGODB_URI is correct in .env file');
+      console.error('3. Your cluster is active and running');
+      process.exit(1);
+    }
   }
 };
 

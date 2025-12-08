@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  Modal,
   Alert,
   SafeAreaView,
   Platform,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,51 +17,355 @@ import { Card, CardContent } from './Card';
 import { Button } from './Button';
 import { Badge } from './Badge';
 import { Progress } from './Progress';
+import { calculateSwasthaIndex } from '../../utils/swasthaIndex';
+import { searchFood, calculateOilAmount, FoodItem } from '../../data/foodDatabase';
+import apiService from '../../services/api';
 
 interface MobileOilTrackerProps {
   language: string;
   navigation?: any;
+  route?: { params?: { targetDate?: string } };
 }
 
-const recentEntries = [
-  { id: 1, dish: 'Dal Tadka', amount: 12, oil: 'Mustard Oil', time: '1:15 PM', verified: true },
-  { id: 2, dish: 'Aloo Paratha', amount: 8, oil: 'Ghee', time: '8:30 AM', verified: true },
-  { id: 3, dish: 'Vegetable Curry', amount: 10, oil: 'Sunflower Oil', time: 'Yesterday', verified: true },
-];
+interface OilEntry {
+  id: number;
+  dish: string;
+  amount: number;
+  oil: string;
+  time: string;
+  mealType: string;
+  quantity: number;
+  unit: string;
+  verified: boolean;
+  date: string;
+  consumedAt?: string;
+}
 
-const familyMembersList = ['Deepak', 'Aditya', 'Vasundhara', 'Rutuja', 'Jeet', 'Ankit'];
-
-export function MobileOilTracker({ language, navigation }: MobileOilTrackerProps) {
+export function MobileOilTracker({ language, navigation, route }: MobileOilTrackerProps) {
   const [showLogEntry, setShowLogEntry] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [oilType, setOilType] = useState('');
-  const [dishName, setDishName] = useState('');
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
+  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+  const [quantity, setQuantity] = useState('');
+  const [unit, setUnit] = useState<'grams' | 'bowls' | 'pieces'>('grams');
+  const [mealType, setMealType] = useState('');
+  const [editingEntry, setEditingEntry] = useState<OilEntry | null>(null);
+  const targetDateParam = route?.params?.targetDate;
+  const [logDate, setLogDate] = useState<Date>(targetDateParam ? new Date(targetDateParam) : new Date());
+  
+  // Group logging state
+  const [adminGroups, setAdminGroups] = useState<any[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [groupMembers, setGroupMembers] = useState<any[]>([]);
+  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
 
-  const todayTotal = 30;
-  const todayTarget = 40;
-  const percentage = (todayTotal / todayTarget) * 100;
+  // Update log date if navigation param changes (e.g., from calendar tap)
+  useEffect(() => {
+    if (targetDateParam) {
+      setLogDate(new Date(targetDateParam));
+    }
+  }, [targetDateParam]);
+  const [entries, setEntries] = useState<OilEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [personalizedLimit, setPersonalizedLimit] = useState<number | null>(null);
 
-  const toggleMember = (member: string) => {
-    setSelectedMembers(prev =>
-      prev.includes(member)
-        ? prev.filter(m => m !== member)
-        : [...prev, member]
+  const recentFoodItems = React.useMemo(() => {
+    const seen = new Set<string>();
+    const recent: FoodItem[] = [];
+    entries.forEach((entry) => {
+      if (!seen.has(entry.dish)) {
+        const match = searchFood('').find(f => f.name === entry.dish);
+        if (match) {
+          seen.add(entry.dish);
+          recent.push(match);
+        }
+      }
+    });
+    return recent;
+  }, [entries]);
+
+  const selectedDay = logDate.toISOString().split('T')[0];
+  // Calculate selected day's total from entries
+  const dayEntries = entries.filter(entry => {
+    const entryDate = entry.consumedAt ? new Date(entry.consumedAt) : new Date(entry.date);
+    const entryDay = isNaN(entryDate.getTime()) ? entry.date : entryDate.toISOString().split('T')[0];
+    return entryDay === selectedDay;
+  });
+  const dayTotal = dayEntries.reduce((sum, entry) => sum + entry.amount, 0);
+  const dayTotalCal = Math.round(dayTotal * 9); // Convert ml to calories (9 cal/ml for oil)
+  const dayTarget = personalizedLimit || 40; // Use personalized limit or fallback to 40ml
+  const dayTargetCal = Math.round(dayTarget * 9);
+  const percentage = (dayTotal / dayTarget) * 100;
+
+  // Load entries when date changes
+  useEffect(() => {
+    loadEntries();
+  }, [logDate]);
+
+  // Load admin groups on mount
+  useEffect(() => {
+    loadAdminGroups();
+  }, []);
+
+  // preload all foods
+  useEffect(() => {
+    handleSearch('');
+  }, []);
+
+  const loadAdminGroups = async () => {
+    try {
+      const response = await apiService.getAdminGroups();
+      if (response.success && response.data) {
+        setAdminGroups(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading admin groups:', error);
+    }
+  };
+
+  const handleGroupChange = async (groupId: string | null) => {
+    setSelectedGroup(groupId);
+    setSelectedMembers(new Set());
+    
+    if (groupId) {
+      try {
+        const response = await apiService.getGroup(groupId);
+        if (response.success && response.data) {
+          const activeMembers = response.data.members.filter(m => m.status === 'active');
+          setGroupMembers(activeMembers);
+        }
+      } catch (error) {
+        console.error('Error loading group members:', error);
+      }
+    } else {
+      setGroupMembers([]);
+    }
+  };
+
+  const toggleMemberSelection = (userId: string) => {
+    setSelectedMembers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    const base = searchFood(query);
+    // Put recent matches on top when query empty or matches
+    if (!query) {
+      const recentSet = new Set(recentFoodItems.map(f => f.id));
+      const merged = [...recentFoodItems, ...base.filter(f => !recentSet.has(f.id))];
+      setSearchResults(merged);
+    } else {
+      // For queried list, keep order as found
+      setSearchResults(base);
+    }
+  };
+
+  const loadEntries = async () => {
+    try {
+      setIsLoading(true);
+      const dateOnly = logDate.toISOString().split('T')[0];
+      
+      // Fetch personalized oil status
+      const statusResponse = await apiService.getUserOilStatus(dateOnly);
+      if (statusResponse.success && statusResponse.data) {
+        setPersonalizedLimit(statusResponse.data.goalMl);
+      }
+      
+      const response = await apiService.getTodayOilConsumption(dateOnly);
+      if (response.success && response.data) {
+        // Transform API entries to local format
+        const formattedEntries: OilEntry[] = response.data.entries.map(entry => ({
+          id: parseInt(entry._id.slice(-8), 16), // Use last 8 chars of ID as number
+          dish: entry.foodName,
+          amount: entry.oilAmount,
+          oil: entry.oilType,
+          time: new Date(entry.consumedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          mealType: entry.mealType,
+          quantity: entry.quantity,
+          unit: entry.unit,
+          verified: entry.verified,
+          date: new Date(entry.consumedAt).toDateString(),
+          consumedAt: entry.consumedAt,
+        }));
+        formattedEntries.sort((a, b) => {
+          const dateA = a.consumedAt ? new Date(a.consumedAt).getTime() : 0;
+          const dateB = b.consumedAt ? new Date(b.consumedAt).getTime() : 0;
+          return dateB - dateA;
+        });
+        setEntries(formattedEntries);
+      }
+    } catch (error) {
+      console.error('Error loading entries:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectFood = (food: FoodItem) => {
+    setSelectedFood(food);
+    // Set default unit based on food type
+    if (food.countable) {
+      setUnit('pieces');
+    } else if (food.category === 'sabji' || food.category === 'dal') {
+      setUnit('bowls');
+    } else {
+      setUnit('grams');
+    }
+  };
+
+  const handleEditEntry = (entry: OilEntry) => {
+    const food = searchFood('').find(f => f.name === entry.dish);
+    if (food) {
+      setEditingEntry(entry);
+      setSelectedFood(food);
+      setQuantity(entry.quantity.toString());
+      setUnit(entry.unit as 'grams' | 'bowls' | 'pieces');
+      setMealType(entry.mealType);
+      setShowLogEntry(true);
+    }
+  };
+
+  const handleDeleteEntry = async (entryId: number) => {
+    Alert.alert(
+      'Delete Entry',
+      'Are you sure you want to delete this entry?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsLoading(true);
+              // Note: Add API endpoint for deletion if available
+              setEntries(prev => prev.filter(e => e.id !== entryId));
+              Alert.alert('Success', 'Entry deleted');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete entry');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        },
+      ]
     );
   };
 
-  const handleLog = () => {
-    if (!amount || !oilType || !dishName || !selectedMembers.length) {
+  const handleLog = async () => {
+    if (!selectedFood || !quantity || !mealType) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
-    Alert.alert('Success', 'Oil consumption logged successfully!');
-    setAmount('');
-    setOilType('');
-    setDishName('');
-    setSelectedMembers([]);
-    setShowLogEntry(false);
+
+    // If group mode and no members selected
+    if (selectedGroup && selectedMembers.size === 0) {
+      Alert.alert('Error', 'Please select at least one member');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const oilAmount = calculateOilAmount(selectedFood, parseFloat(quantity), unit);
+      
+      const dateOnly = logDate.toISOString().split('T')[0];
+      const consumedAt = `${dateOnly}T12:00:00Z`;
+
+      // Group logging
+      if (selectedGroup && selectedMembers.size > 0) {
+        const consumptionData = Array.from(selectedMembers).map(userId => ({
+          userId,
+          foodName: selectedFood.name,
+          oilType: selectedFood.oilType,
+          oilAmount,
+          quantity: parseFloat(quantity),
+          unit,
+          mealType: mealType as 'Breakfast' | 'Lunch' | 'Snack' | 'Dinner',
+        }));
+
+        const response = await apiService.logGroupConsumption(selectedGroup, consumptionData);
+        
+        if (response.success) {
+          const caloriesLogged = Math.round(oilAmount * 9);
+          Alert.alert(
+            'Success', 
+            `Logged ${caloriesLogged} cal (${oilAmount.toFixed(1)}ml) for ${selectedMembers.size} member(s)`
+          );
+          
+          // Reset form
+          setSelectedFood(null);
+          setQuantity('');
+          setMealType('');
+          setSelectedGroup(null);
+          setSelectedMembers(new Set());
+          setGroupMembers([]);
+          setShowLogEntry(false);
+          loadEntries(); // Reload entries to show updated data
+        } else {
+          Alert.alert('Error', response.message || 'Failed to log group consumption');
+        }
+      } else {
+        // Individual logging
+        const response = await apiService.logOilConsumption({
+          foodName: selectedFood.name,
+          oilType: selectedFood.oilType,
+          oilAmount,
+          quantity: parseFloat(quantity),
+          unit,
+          mealType: mealType as 'Breakfast' | 'Lunch' | 'Snack' | 'Dinner',
+          consumedAt,
+        });
+
+        if (response.success && response.data) {
+          // Add the new entry to local state
+          const newEntry: OilEntry = {
+            id: Date.now(),
+            dish: selectedFood.name,
+            amount: Math.round(oilAmount * 10) / 10,
+            oil: selectedFood.oilType,
+            time: new Date(consumedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            mealType,
+            quantity: parseFloat(quantity),
+            unit,
+            verified: true,
+            date: new Date(consumedAt).toDateString(),
+            consumedAt,
+          };
+          
+          if (editingEntry) {
+            // Update existing entry
+            setEntries(prev => prev.map(e => e.id === editingEntry.id ? newEntry : e));
+            Alert.alert('Success', 'Entry updated successfully');
+          } else {
+            // Add new entry
+            setEntries(prev => [newEntry, ...prev]);
+            const caloriesLogged = Math.round(oilAmount * 9);
+            Alert.alert('Success', `Logged ${caloriesLogged} cal (${oilAmount.toFixed(1)}ml) of ${selectedFood.oilType}`);
+          }
+          
+          // Reset form
+          setSelectedFood(null);
+          setQuantity('');
+          setMealType('');
+          setEditingEntry(null);
+          setShowLogEntry(false);
+        } else {
+          Alert.alert('Error', response.message || 'Failed to log consumption');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to log consumption');
+      console.error('Error logging:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const text = {
@@ -78,12 +382,20 @@ export function MobileOilTracker({ language, navigation }: MobileOilTrackerProps
       oilPlaceholder: 'e.g., Mustard Oil',
       amountLabel: 'Amount (ml)',
       amountPlaceholder: 'e.g., 15',
-      membersLabel: 'Family Members',
       selectMembers: 'Select Members',
       cancel: 'Cancel',
       save: 'Save Entry',
+      update: 'Update Entry',
       recentEntries: 'Recent Entries',
       verified: 'Verified',
+      edit: 'Edit',
+      delete: 'Delete',
+      groupLogging: 'Group Logging',
+      selectGroup: 'Select Group',
+      personalLog: 'Log for Self',
+      logForMembers: 'Log for Members',
+      noGroups: 'No groups available',
+      noGroupsDesc: 'Create a group to log for multiple members',
     },
     hi: {
       title: 'तेल ट्रैकर',
@@ -98,12 +410,20 @@ export function MobileOilTracker({ language, navigation }: MobileOilTrackerProps
       oilPlaceholder: 'उदा., सरसों का तेल',
       amountLabel: 'मात्रा (मिली)',
       amountPlaceholder: 'उदा., 15',
-      membersLabel: 'परिवार के सदस्य',
       selectMembers: 'सदस्य चुनें',
       cancel: 'रद्द करें',
       save: 'प्रविष्टि सहेजें',
+      update: 'प्रविष्टि अपडेट करें',
       recentEntries: 'हाल की प्रविष्टियां',
       verified: 'सत्यापित',
+      edit: 'संपादित करें',
+      delete: 'हटाएं',
+      groupLogging: 'समूह लॉगिंग',
+      selectGroup: 'समूह चुनें',
+      personalLog: 'स्वयं के लिए लॉग करें',
+      logForMembers: 'सदस्यों के लिए लॉग करें',
+      noGroups: 'कोई समूह उपलब्ध नहीं',
+      noGroupsDesc: 'कई सदस्यों के लिए लॉग करने हेतु समूह बनाएं',
     },
   };
 
@@ -135,162 +455,367 @@ export function MobileOilTracker({ language, navigation }: MobileOilTrackerProps
           <View style={{ width: 40 }} />
         </View>
 
-        {/* Today's Progress */}
+        {/* Progress Card */}
         <View style={styles.progressCard}>
           <Text style={styles.progressLabel}>{t.todayUsage}</Text>
           <View style={styles.progressValues}>
-            <Text style={styles.progressCurrent}>{todayTotal}g</Text>
-            <Text style={styles.progressTarget}>/ {todayTarget}g</Text>
+            <Text style={styles.progressCurrent}>{dayTotalCal} cal</Text>
+            <Text style={styles.progressTarget}>/ {dayTargetCal} cal</Text>
           </View>
           <Progress value={percentage} style={styles.progressBar} />
           <Text style={styles.progressRemaining}>
-            {todayTarget - todayTotal}g {t.remaining}
+            {Math.max(0, dayTargetCal - dayTotalCal)} cal {t.remaining}
           </Text>
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Quick Log Button */}
-        {!showLogEntry && (
-          <Button
-            onPress={() => setShowLogEntry(true)}
-            style={styles.logButton}
-          >
-            <View style={styles.buttonContent}>
-              <Ionicons name="add" size={20} color="#ffffff" />
-              <Text style={styles.logButtonText}>{t.logButton}</Text>
-            </View>
-          </Button>
-        )}
-
-        {/* Log Entry Form */}
+      {/* Main Content */}
+      <ScrollView style={styles.content}>
+        {/* Log Entry Form - Always Visible */}
         {showLogEntry && (
           <Card style={styles.logCard}>
             <CardContent style={styles.logContent}>
               <View style={styles.logHeader}>
-                <Text style={styles.logTitle}>{t.logTitle}</Text>
-                <TouchableOpacity onPress={() => setShowLogEntry(false)}>
+                <Text style={styles.logTitle}>{editingEntry ? t.update : t.logTitle}</Text>
+                <TouchableOpacity onPress={() => {
+                  setShowLogEntry(false);
+                  setEditingEntry(null);
+                  setSelectedFood(null);
+                  setQuantity('');
+                  setMealType('');
+                }}>
                   <Ionicons name="close" size={24} color="#5B5B5B" />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>{t.dishLabel}</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t.dishPlaceholder}
-                  value={dishName}
-                  onChangeText={setDishName}
-                />
-              </View>
+              {/* Food List with search */}
+              {!selectedFood && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Select Food Item</Text>
+                  <View style={styles.searchContainer}>
+                    <Ionicons name="search" size={20} color="#5B5B5B" style={styles.searchIcon} />
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Search for dish..."
+                      value={searchQuery}
+                      onChangeText={handleSearch}
+                    />
+                  </View>
+                  <ScrollView style={styles.searchResults} nestedScrollEnabled>
+                    {searchResults.map((food) => (
+                      <TouchableOpacity
+                        key={food.id}
+                        style={styles.searchResultItem}
+                        onPress={() => handleSelectFood(food)}
+                      >
+                        <View style={styles.searchResultContent}>
+                          <Text style={styles.searchResultName}>{food.name}</Text>
+                          <Text style={styles.searchResultCategory}>{food.category} • {food.oilType}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>{t.oilLabel}</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t.oilPlaceholder}
-                  value={oilType}
-                  onChangeText={setOilType}
-                />
-              </View>
+              {/* Selected Food Details */}
+              {selectedFood && (
+                <>
+                  <View style={styles.selectedFoodCard}>
+                    <View style={styles.selectedFoodHeader}>
+                      <View style={styles.selectedFoodInfo}>
+                        <Text style={styles.selectedFoodName}>{selectedFood.name}</Text>
+                        <Text style={styles.selectedFoodMeta}>
+                          {selectedFood.category} • {selectedFood.oilType}
+                        </Text>
+                      </View>
+                      <TouchableOpacity onPress={() => setSelectedFood(null)}>
+                        <Ionicons name="close-circle" size={24} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>{t.amountLabel}</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t.amountPlaceholder}
-                  value={amount}
-                  onChangeText={setAmount}
-                  keyboardType="numeric"
-                />
-              </View>
+                  {/* Quantity Input */}
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>Quantity</Text>
+                    <View style={styles.quantityRow}>
+                      <TextInput
+                        style={styles.quantityInput}
+                        placeholder="Enter quantity"
+                        value={quantity}
+                        onChangeText={setQuantity}
+                        keyboardType="numeric"
+                      />
+                      <View style={styles.unitButtons}>
+                        {selectedFood.countable && (
+                          <TouchableOpacity
+                            style={[styles.unitButton, unit === 'pieces' && styles.unitButtonActive]}
+                            onPress={() => setUnit('pieces')}
+                          >
+                            <Text style={[styles.unitButtonText, unit === 'pieces' && styles.unitButtonTextActive]}>
+                              Pieces
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                        {(selectedFood.category === 'sabji' || selectedFood.category === 'dal') && (
+                          <TouchableOpacity
+                            style={[styles.unitButton, unit === 'bowls' && styles.unitButtonActive]}
+                            onPress={() => setUnit('bowls')}
+                          >
+                            <Text style={[styles.unitButtonText, unit === 'bowls' && styles.unitButtonTextActive]}>
+                              Bowls
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                          style={[styles.unitButton, unit === 'grams' && styles.unitButtonActive]}
+                          onPress={() => setUnit('grams')}
+                        >
+                          <Text style={[styles.unitButtonText, unit === 'grams' && styles.unitButtonTextActive]}>
+                            Grams
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    {quantity && (
+                      <Text style={styles.oilEstimate}>
+                        ≈ {Math.round(calculateOilAmount(selectedFood, parseFloat(quantity), unit) * 9)} cal ({calculateOilAmount(selectedFood, parseFloat(quantity), unit).toFixed(1)}ml) {selectedFood.oilType}
+                      </Text>
+                    )}
+                  </View>
 
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>{t.membersLabel}</Text>
-                <TouchableOpacity
-                  style={styles.memberSelector}
-                  onPress={() => setShowMemberModal(true)}
-                >
-                  <Text style={styles.memberText}>
-                    {selectedMembers.length > 0
-                      ? selectedMembers.join(', ')
-                      : t.selectMembers}
-                  </Text>
-                  <Ionicons name="chevron-down" size={20} color="#5B5B5B" />
-                </TouchableOpacity>
-              </View>
+                  {/* Meal Type */}
+                  <View style={styles.formGroup}>
+                    <Text style={styles.label}>Meal Type</Text>
+                    <View style={styles.mealTypeButtons}>
+                      {['Breakfast', 'Lunch', 'Snack', 'Dinner'].map((meal) => (
+                        <TouchableOpacity
+                          key={meal}
+                          style={[styles.mealButton, mealType === meal && styles.mealButtonActive]}
+                          onPress={() => setMealType(meal)}
+                        >
+                          <Text style={[styles.mealButtonText, mealType === meal && styles.mealButtonTextActive]}>
+                            {meal}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Group Logging Section */}
+                  {!editingEntry && adminGroups.length > 0 && (
+                    <View style={styles.formGroup}>
+                      <Text style={styles.label}>{t.groupLogging}</Text>
+                      <View style={styles.groupToggleRow}>
+                        <TouchableOpacity
+                          style={[styles.groupToggle, !selectedGroup && styles.groupToggleActive]}
+                          onPress={() => handleGroupChange(null)}
+                        >
+                          <Ionicons 
+                            name="person" 
+                            size={20} 
+                            color={!selectedGroup ? '#1b4a5a' : '#9ca3af'} 
+                          />
+                          <Text style={[styles.groupToggleText, !selectedGroup && styles.groupToggleTextActive]}>
+                            {t.personalLog}
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.groupToggle, selectedGroup && styles.groupToggleActive]}
+                          onPress={() => {
+                            if (adminGroups.length > 0) {
+                              handleGroupChange(adminGroups[0]._id);
+                            }
+                          }}
+                        >
+                          <Ionicons 
+                            name="people" 
+                            size={20} 
+                            color={selectedGroup ? '#1b4a5a' : '#9ca3af'} 
+                          />
+                          <Text style={[styles.groupToggleText, selectedGroup && styles.groupToggleTextActive]}>
+                            {t.logForMembers}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {selectedGroup && (
+                        <>
+                          {/* Group Selector */}
+                          <View style={styles.groupSelector}>
+                            <Text style={styles.groupSelectorLabel}>{t.selectGroup}</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.groupChips}>
+                              {adminGroups.map((group) => (
+                                <TouchableOpacity
+                                  key={group._id}
+                                  style={[
+                                    styles.groupChip,
+                                    selectedGroup === group._id && styles.groupChipActive
+                                  ]}
+                                  onPress={() => handleGroupChange(group._id)}
+                                >
+                                  <Text style={[
+                                    styles.groupChipText,
+                                    selectedGroup === group._id && styles.groupChipTextActive
+                                  ]}>
+                                    {group.name}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </ScrollView>
+                          </View>
+
+                          {/* Member Selection */}
+                          {groupMembers.length > 0 && (
+                            <View style={styles.memberSelection}>
+                              <Text style={styles.memberSelectionLabel}>{t.selectMembers}</Text>
+                              <View style={styles.memberList}>
+                                {groupMembers.map((member) => (
+                                  <TouchableOpacity
+                                    key={member.userId._id}
+                                    style={[
+                                      styles.memberItem,
+                                      selectedMembers.has(member.userId._id) && styles.memberItemSelected
+                                    ]}
+                                    onPress={() => toggleMemberSelection(member.userId._id)}
+                                  >
+                                    <View style={styles.memberAvatar}>
+                                      <Ionicons name="person" size={20} color="#1b4a5a" />
+                                    </View>
+                                    <View style={styles.memberDetails}>
+                                      <Text style={styles.memberName}>
+                                        {member.userId.name || member.userId.email}
+                                      </Text>
+                                      <Text style={styles.memberEmail}>{member.userId.email}</Text>
+                                    </View>
+                                    {selectedMembers.has(member.userId._id) && (
+                                      <Ionicons name="checkmark-circle" size={24} color="#16a34a" />
+                                    )}
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                              {selectedMembers.size > 0 && (
+                                <View style={styles.selectedCount}>
+                                  <Text style={styles.selectedCountText}>
+                                    {selectedMembers.size} member(s) selected
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          )}
+                        </>
+                      )}
+                    </View>
+                  )}
+                </>
+              )}
 
               <View style={styles.buttonRow}>
                 <Button
                   variant="outline"
-                  onPress={() => setShowLogEntry(false)}
+                  onPress={() => {
+                    setShowLogEntry(false);
+                    setEditingEntry(null);
+                    setSelectedFood(null);
+                    setQuantity('');
+                    setMealType('');
+                  }}
                   style={styles.cancelButton}
                 >
                   {t.cancel}
                 </Button>
                 <Button onPress={handleLog} style={styles.saveButton}>
-                  {t.save}
+                  {editingEntry ? t.update : t.save}
                 </Button>
               </View>
             </CardContent>
           </Card>
         )}
 
-        {/* Recent Entries */}
+        {/* Log Entry Button */}
+        <TouchableOpacity
+          style={styles.logButton}
+          onPress={() => setShowLogEntry(!showLogEntry)}
+        >
+          <View style={styles.logButtonContent}>
+            <View style={styles.logButtonIcon}>
+              <Ionicons name="add-circle" size={28} color="#ffffff" />
+            </View>
+            <View style={styles.logButtonTextContainer}>
+              <Text style={styles.logButtonText}>{t.logButton}</Text>
+              <Text style={styles.logButtonSubtext}>Track what you cooked today</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
+          </View>
+        </TouchableOpacity>
+
+        {/* Recent Entries by Meal Type */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.recentEntries}</Text>
-          {recentEntries.map((entry) => (
-            <Card key={entry.id} style={styles.entryCard}>
-              <CardContent style={styles.entryContent}>
-                <View style={styles.entryHeader}>
-                  <Text style={styles.entryDish}>{entry.dish}</Text>
-                  {entry.verified && (
-                    <Badge variant="success">
-                      <View style={styles.badgeContent}>
-                        <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
-                        <Text style={styles.badgeText}>{t.verified}</Text>
-                      </View>
-                    </Badge>
-                  )}
-                </View>
-                <View style={styles.entryDetails}>
-                  <Text style={styles.entryDetail}>{entry.amount}ml • {entry.oil}</Text>
-                  <Text style={styles.entryTime}>{entry.time}</Text>
-                </View>
+          <Text style={styles.sectionTitle}>Today's Entries</Text>
+          {dayEntries.length === 0 ? (
+            <Card style={styles.entryCard}>
+              <CardContent style={styles.emptyState}>
+                <Ionicons name="restaurant-outline" size={48} color="#d1d5db" />
+                <Text style={styles.emptyText}>No entries yet</Text>
+                <Text style={styles.emptySubtext}>Start tracking your oil consumption</Text>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            ['Breakfast', 'Lunch', 'Snack', 'Dinner'].map(meal => {
+              const group = dayEntries.filter(e => e.mealType === meal);
+              if (group.length === 0) return null;
+              return (
+                <View key={meal} style={{ marginBottom: 16 }}>
+                  <View style={styles.mealDivider}>
+                    <View style={styles.mealDividerLine} />
+                    <Text style={styles.mealGroupTitle}>{meal}</Text>
+                    <View style={styles.mealDividerLine} />
+                  </View>
+                  {group.map((entry) => (
+                    <Card key={entry.id} style={styles.entryCard}>
+                      <CardContent style={styles.entryContent}>
+                        <View style={styles.entryHeader}>
+                          <View style={styles.entryTitleRow}>
+                            <Text style={styles.entryDish}>{entry.dish}</Text>
+                            {entry.verified && (
+                              <Badge variant="success">
+                                <View style={styles.badgeContent}>
+                                  <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
+                                  <Text style={styles.badgeText}>{t.verified}</Text>
+                                </View>
+                              </Badge>
+                            )}
+                          </View>
+                          <View style={styles.entryActions}>
+                            <TouchableOpacity onPress={() => handleEditEntry(entry)} style={styles.actionButton}>
+                              <Ionicons name="create-outline" size={20} color="#3b82f6" />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => handleDeleteEntry(entry.id)} style={styles.actionButton}>
+                              <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                        <View style={styles.entryDetails}>
+                          <Text style={styles.entryDetail}>
+                            {Math.round(entry.amount * 9)} cal ({entry.amount}ml) • {entry.oil}
+                          </Text>
+                          <Text style={styles.entryDetail}>
+                            {entry.quantity} {entry.unit}
+                          </Text>
+                          <Text style={styles.entryTime}>{entry.time}</Text>
+                        </View>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </View>
+              );
+            })
+          )}
         </View>
+
       </ScrollView>
 
-      {/* Member Selection Modal */}
-      <Modal
-        visible={showMemberModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowMemberModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t.membersLabel}</Text>
-            {familyMembersList.map((member) => (
-              <TouchableOpacity
-                key={member}
-                style={styles.memberOption}
-                onPress={() => toggleMember(member)}
-              >
-                <Text style={styles.memberName}>{member}</Text>
-                {selectedMembers.includes(member) && (
-                  <Ionicons name="checkmark" size={24} color="#07A996" />
-                )}
-              </TouchableOpacity>
-            ))}
-            <Button onPress={() => setShowMemberModal(false)} style={styles.doneButton}>
-              Done
-            </Button>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -338,6 +863,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
   },
+  datePill: {
+    marginTop: 4,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    color: '#ffffff',
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
   subtitle: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
@@ -379,18 +915,46 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   logButton: {
-    marginBottom: 20,
-    backgroundColor: '#fcaf56',
+    marginBottom: 24,
+    backgroundColor: '#1b4a5a',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  logButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  logButtonIcon: {
+    width: 56,
+    height: 56,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logButtonTextContainer: {
+    flex: 1,
+  },
+  logButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  logButtonSubtext: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 13,
   },
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  logButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
   },
   logCard: {
     marginBottom: 20,
@@ -429,20 +993,196 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
   },
-  memberSelector: {
+  oilSwasthaInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    gap: 10,
+  },
+  oilSwasthaBadge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  oilSwasthaScore: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  oilSwasthaDetails: {
+    flex: 1,
+  },
+  oilSwasthaCategory: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  oilSwasthaExplanation: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    lineHeight: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#D3D3D3',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#040707',
+  },
+  searchResults: {
+    maxHeight: 200,
+    marginTop: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  searchResultContent: {
+    flex: 1,
+  },
+  searchResultName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 2,
+  },
+  searchResultCategory: {
+    fontSize: 13,
+    color: '#5B5B5B',
+  },
+  selectedFoodCard: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  selectedFoodHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectedFoodInfo: {
+    flex: 1,
+  },
+  selectedFoodName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  selectedFoodMeta: {
+    fontSize: 14,
+    color: '#3b82f6',
+  },
+  quantityRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quantityInput: {
+    flex: 1,
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#D3D3D3',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  memberText: {
     fontSize: 16,
-    color: '#040707',
+  },
+  unitButtons: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  unitButton: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  unitButtonActive: {
+    backgroundColor: '#1b4a5a',
+    borderColor: '#1b4a5a',
+  },
+  unitButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#5B5B5B',
+  },
+  unitButtonTextActive: {
+    color: '#ffffff',
+  },
+  oilEstimate: {
+    fontSize: 14,
+    color: '#16a34a',
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  mealTypeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  mealButton: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  mealButtonActive: {
+    backgroundColor: '#fcaf56',
+    borderColor: '#fcaf56',
+  },
+  mealButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#5B5B5B',
+  },
+  mealButtonTextActive: {
+    color: '#ffffff',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#5B5B5B',
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 4,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -456,13 +1196,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    marginTop: 8,
+    marginTop: 0,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#040707',
+    marginBottom: 16,
+  },
+  mealDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
+    marginTop: 4,
+  },
+  mealDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#d1d5db',
+  },
+  mealGroupTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0b3b4c',
+    paddingHorizontal: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   entryCard: {
     marginBottom: 12,
@@ -473,13 +1232,28 @@ const styles = StyleSheet.create({
   entryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
+  },
+  entryTitleRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginRight: 8,
+  },
+  entryActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    padding: 4,
   },
   entryDish: {
     fontSize: 16,
     fontWeight: '600',
     color: '#040707',
+    flex: 1,
   },
   badgeContent: {
     flexDirection: 'row',
@@ -534,5 +1308,123 @@ const styles = StyleSheet.create({
   },
   doneButton: {
     marginTop: 16,
+  },
+  groupToggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  groupToggle: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  groupToggleActive: {
+    backgroundColor: '#E7F2F1',
+    borderColor: '#1b4a5a',
+  },
+  groupToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9ca3af',
+  },
+  groupToggleTextActive: {
+    color: '#1b4a5a',
+  },
+  groupSelector: {
+    marginTop: 12,
+  },
+  groupSelectorLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#5B5B5B',
+    marginBottom: 8,
+  },
+  groupChips: {
+    flexDirection: 'row',
+  },
+  groupChip: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginRight: 8,
+  },
+  groupChipActive: {
+    backgroundColor: '#1b4a5a',
+    borderColor: '#1b4a5a',
+  },
+  groupChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#5B5B5B',
+  },
+  groupChipTextActive: {
+    color: '#ffffff',
+  },
+  memberSelection: {
+    marginTop: 16,
+  },
+  memberSelectionLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#5B5B5B',
+    marginBottom: 12,
+  },
+  memberList: {
+    gap: 8,
+  },
+  memberItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  memberItemSelected: {
+    backgroundColor: '#E7F2F1',
+    borderColor: '#16a34a',
+    borderWidth: 2,
+  },
+  memberAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E7F2F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  memberDetails: {
+    flex: 1,
+  },
+  memberEmail: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginTop: 2,
+  },
+  selectedCount: {
+    backgroundColor: '#E7F2F1',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  selectedCountText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1b4a5a',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { Badge } from './Badge';
 import { Progress } from './Progress';
 import Svg, { Path, Circle, Line, Text as SvgText, G, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
+import apiService from '../../services/api';
 
 interface MobileHomeProps {
   language: string;
@@ -28,7 +29,8 @@ const { width } = Dimensions.get('window');
 
 export function MobileHome({ language }: MobileHomeProps) {
   const navigation = useNavigation<any>();
-  const [selectedDate, setSelectedDate] = useState(15);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [weekOffset, setWeekOffset] = useState(0);
   const [hasNotification, setHasNotification] = useState(true);
 
   // Speech bubble text animation
@@ -62,18 +64,100 @@ export function MobileHome({ language }: MobileHomeProps) {
   const currentDate = "29 November, 2025";
   const healthRiskLevel = 25;
 
-  const weekDates = [
-    { day: 'Mon', date: 12 },
-    { day: 'Tue', date: 13 },
-    { day: 'Wed', date: 14 },
-    { day: 'Thu', date: 15 },
-    { day: 'Fri', date: 16 },
-    { day: 'Sat', date: 17 },
-    { day: 'Sun', date: 18 },
-  ];
+  const weekDates = useMemo(() => {
+    const today = new Date();
+    const base = new Date(today);
+    base.setDate(today.getDate() + weekOffset * 7);
+    // Start week on Sunday
+    const startOfWeek = new Date(base);
+    const day = base.getDay();
+    // Sunday = 0, so no offset needed. For other days, go back to Sunday
+    const diff = -day;
+    startOfWeek.setDate(base.getDate() + diff);
 
-  const dailyConsumption = 48; // ml
-  const dailyLimit = 50; // ml
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      return {
+        day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        date: d.getDate(),
+        fullDate: d,
+      };
+    });
+  }, [weekOffset]);
+
+  useEffect(() => {
+    // When changing week, default select the first day of that week
+    if (weekDates.length > 0) {
+      setSelectedDate(weekDates[0].fullDate);
+    }
+  }, [weekDates]);
+
+  const [dailyConsumption, setDailyConsumption] = useState(0); // ml
+  const [dailyLimit, setDailyLimit] = useState(40); // ml fallback
+  const [dailyLimitCal, setDailyLimitCal] = useState(360); // cal fallback
+  const [weeklyData, setWeeklyData] = useState<Array<{ date: string; calories: number }>>([]);
+
+  useEffect(() => {
+    const fetchDaily = async () => {
+      try {
+        const dateOnly = selectedDate.toISOString().split('T')[0];
+        
+        // Fetch personalized oil status
+        const statusRes = await apiService.getUserOilStatus(dateOnly);
+        if (statusRes.success && statusRes.data) {
+          setDailyLimit(statusRes.data.goalMl || 40);
+          setDailyLimitCal(Math.round(statusRes.data.goalKcal || 360));
+        }
+        
+        // Fetch today's consumption
+        const res = await apiService.getTodayOilConsumption(dateOnly);
+        if (res.success && res.data) {
+          setDailyConsumption(res.data.dailyTotal || 0);
+        }
+      } catch (e) {
+        console.log('Failed to load daily oil', e);
+      }
+    };
+    fetchDaily();
+  }, [selectedDate]);
+  
+  // Fetch weekly consumption data (Sunday to Saturday)
+  useEffect(() => {
+    const fetchWeeklyData = async () => {
+      try {
+        const data: Array<{ date: string; calories: number }> = [];
+        const today = new Date();
+        
+        // Get current day of week (0 = Sunday, 6 = Saturday)
+        const currentDay = today.getDay();
+        
+        // Calculate Sunday of current week
+        const sunday = new Date(today);
+        sunday.setDate(today.getDate() - currentDay);
+        
+        // Fetch data from Sunday to Saturday (current week)
+        for (let i = 0; i < 7; i++) {
+          const date = new Date(sunday);
+          date.setDate(sunday.getDate() + i);
+          const dateStr = date.toISOString().split('T')[0];
+          
+          const res = await apiService.getTodayOilConsumption(dateStr);
+          const calories = res.success && res.data ? Math.round((res.data.dailyTotal || 0) * 9) : 0;
+          
+          data.push({
+            date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+            calories
+          });
+        }
+        
+        setWeeklyData(data);
+      } catch (e) {
+        console.log('Failed to load weekly data', e);
+      }
+    };
+    fetchWeeklyData();
+  }, []);
 
   // Chart data points for daily oil consumption
   const chartData = [
@@ -91,7 +175,7 @@ export function MobileHome({ language }: MobileHomeProps) {
       today: 'Today',
       todaysOilUsage: "Oil Calories",
       oilConsumption: 'Oil Consumption',
-      dailyOilConsumption: 'Daily Oil Consumption',
+      dailyOilConsumption: 'Weekly Oil Consumption',
       dailyLimit: 'Daily Limit',
       healthRisk: 'Health Risk Level',
       healthRiskLevel: 'Health Risk Level',
@@ -159,7 +243,7 @@ export function MobileHome({ language }: MobileHomeProps) {
   };
 
   const handleLogOil = () => {
-    navigation.navigate('OilTracker');
+    navigation.navigate('OilTracker', { targetDate: selectedDate.toISOString() });
   };
 
   return (
@@ -172,52 +256,135 @@ export function MobileHome({ language }: MobileHomeProps) {
         <View style={styles.chartContainer}>
           {/* Chart */}
           <View style={styles.chartWrapper}>
-            <Svg width={width * 0.58} height={150} viewBox="0 0 280 90">
-              {/* Grid lines */}
-              <Line x1="20" y1="20" x2="20" y2="110" stroke="#3d6b7a" strokeWidth="1" strokeDasharray="2,2" />
-              <Line x1="20" y1="110" x2="270" y2="110" stroke="#3d6b7a" strokeWidth="1" />
+            <Svg width={width * 0.58} height={160} viewBox="0 0 300 130">
+              <Defs>
+                {/* Gradient for line */}
+                <SvgLinearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <Stop offset="0%" stopColor="#fcaf56" stopOpacity="1" />
+                  <Stop offset="100%" stopColor="#f5a623" stopOpacity="1" />
+                </SvgLinearGradient>
+                {/* Gradient for area under line */}
+                <SvgLinearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <Stop offset="0%" stopColor="#fcaf56" stopOpacity="0.3" />
+                  <Stop offset="100%" stopColor="#fcaf56" stopOpacity="0.05" />
+                </SvgLinearGradient>
+              </Defs>
+              
+              {/* Horizontal grid lines */}
+              <Line x1="30" y1="20" x2="280" y2="20" stroke="#e0e0e0" strokeWidth="0.5" opacity="0.5" />
+              <Line x1="30" y1="50" x2="280" y2="50" stroke="#e0e0e0" strokeWidth="0.5" opacity="0.5" />
+              <Line x1="30" y1="80" x2="280" y2="80" stroke="#e0e0e0" strokeWidth="0.5" opacity="0.5" />
+              <Line x1="30" y1="110" x2="280" y2="110" stroke="#3d6b7a" strokeWidth="1.5" />
+              
+              {/* Y-axis */}
+              <Line x1="30" y1="20" x2="30" y2="110" stroke="#3d6b7a" strokeWidth="1.5" />
               
               {/* Y-axis labels */}
-              <SvgText x="15" y="25" fill="#7fb5c5" fontSize="10" textAnchor="end">16</SvgText>
-              <SvgText x="15" y="65" fill="#7fb5c5" fontSize="10" textAnchor="end">8</SvgText>
-              <SvgText x="15" y="110" fill="#7fb5c5" fontSize="10" textAnchor="end">0</SvgText>
+              <SvgText x="25" y="25" fill="#5B5B5B" fontSize="10" fontWeight="600" textAnchor="end">{dailyLimitCal}</SvgText>
+              <SvgText x="25" y="55" fill="#5B5B5B" fontSize="10" fontWeight="500" textAnchor="end">{Math.round(dailyLimitCal * 0.67)}</SvgText>
+              <SvgText x="25" y="85" fill="#5B5B5B" fontSize="10" fontWeight="500" textAnchor="end">{Math.round(dailyLimitCal * 0.33)}</SvgText>
+              <SvgText x="25" y="113" fill="#5B5B5B" fontSize="10" fontWeight="600" textAnchor="end">0</SvgText>
               
-              {/* Dotted rectangle (safe zone) */}
+              {/* Safe zone indicator */}
               <Path
-                d="M25,35 L260,35 L260,75 L25,75 Z"
-                fill="none"
-                stroke="#3d6b7a"
+                d="M30,20 L280,20 L280,65 L30,65 Z"
+                fill="rgba(220, 252, 231, 0.3)"
+                stroke="#16a34a"
                 strokeWidth="1"
-                strokeDasharray="4,4"
+                strokeDasharray="3,3"
+                opacity="0.5"
               />
               
-              {/* Line chart path - extended with 8pm and 10pm */}
-              <Path
-                d="M25,75 L55,65 L85,20 L115,50 L145,95 L175,100 L205,102 L235,105"
-                fill="none"
-                stroke="#f5a623"
-                strokeWidth="2.5"
-              />
-              
-              {/* Data points */}
-              <Circle cx="25" cy="75" r="4" fill="#f5a623" />
-              <Circle cx="55" cy="65" r="4" fill="#f5a623" />
-              <Circle cx="85" cy="20" r="4" fill="#f5a623" />
-              <Circle cx="115" cy="50" r="4" fill="#f5a623" />
-              <Circle cx="145" cy="95" r="4" fill="#f5a623" />
-              <Circle cx="175" cy="100" r="4" fill="#f5a623" />
-              <Circle cx="205" cy="102" r="4" fill="#f5a623" />
-              <Circle cx="235" cy="105" r="4" fill="#f5a623" />
-              
-              {/* X-axis labels */}
-              <SvgText x="25" y="125" fill="#7fb5c5" fontSize="8" textAnchor="middle">8am</SvgText>
-              <SvgText x="55" y="125" fill="#7fb5c5" fontSize="8" textAnchor="middle">10am</SvgText>
-              <SvgText x="85" y="125" fill="#7fb5c5" fontSize="8" textAnchor="middle">12pm</SvgText>
-              <SvgText x="115" y="125" fill="#7fb5c5" fontSize="8" textAnchor="middle">2pm</SvgText>
-              <SvgText x="145" y="125" fill="#7fb5c5" fontSize="8" textAnchor="middle">4pm</SvgText>
-              <SvgText x="175" y="125" fill="#7fb5c5" fontSize="8" textAnchor="middle">6pm</SvgText>
-              <SvgText x="205" y="125" fill="#7fb5c5" fontSize="8" textAnchor="middle">8pm</SvgText>
-              <SvgText x="235" y="125" fill="#7fb5c5" fontSize="8" textAnchor="middle">10pm</SvgText>
+              {/* Chart data */}
+              {weeklyData.length > 0 && (
+                <>
+                  {/* Area under the line */}
+                  <Path
+                    d={`M30,110 ${weeklyData.map((point, i) => {
+                      const x = 30 + (i * 250 / 6);
+                      const maxCal = dailyLimitCal * 1.2;
+                      const y = 110 - ((point.calories / maxCal) * 90);
+                      return `L${x},${Math.max(20, Math.min(110, y))}`;
+                    }).join(' ')} L${30 + (6 * 250 / 6)},110 Z`}
+                    fill="url(#areaGradient)"
+                  />
+                  
+                  {/* Line chart path */}
+                  <Path
+                    d={weeklyData.map((point, i) => {
+                      const x = 30 + (i * 250 / 6);
+                      const maxCal = dailyLimitCal * 1.2;
+                      const y = 110 - ((point.calories / maxCal) * 90);
+                      return `${i === 0 ? 'M' : 'L'}${x},${Math.max(20, Math.min(110, y))}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="url(#lineGradient)"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  
+                  {/* Data points with glow effect */}
+                  {weeklyData.map((point, i) => {
+                    const x = 30 + (i * 250 / 6);
+                    const maxCal = dailyLimitCal * 1.2;
+                    const y = 110 - ((point.calories / maxCal) * 90);
+                    const clampedY = Math.max(20, Math.min(110, y));
+                    const isOverLimit = point.calories > dailyLimitCal;
+                    
+                    return (
+                      <G key={i}>
+                        {/* Outer glow */}
+                        <Circle 
+                          cx={x} 
+                          cy={clampedY} 
+                          r="6" 
+                          fill={isOverLimit ? "#ef4444" : "#fcaf56"}
+                          opacity="0.2"
+                        />
+                        {/* Main point */}
+                        <Circle 
+                          cx={x} 
+                          cy={clampedY} 
+                          r="4" 
+                          fill="#ffffff"
+                          stroke={isOverLimit ? "#ef4444" : "#f5a623"}
+                          strokeWidth="2.5"
+                        />
+                        {/* Calorie value */}
+                        <SvgText 
+                          x={x} 
+                          y={Math.max(12, clampedY - 10)} 
+                          fill={isOverLimit ? "#ef4444" : "#f5a623"}
+                          fontSize="10" 
+                          fontWeight="700"
+                          textAnchor="middle"
+                        >
+                          {point.calories}
+                        </SvgText>
+                      </G>
+                    );
+                  })}
+                  
+                  {/* X-axis labels */}
+                  {weeklyData.map((point, i) => {
+                    const x = 30 + (i * 250 / 6);
+                    return (
+                      <SvgText 
+                        key={i}
+                        x={x} 
+                        y="125" 
+                        fill="#5B5B5B" 
+                        fontSize="9" 
+                        fontWeight="600"
+                        textAnchor="middle"
+                      >
+                        {point.date}
+                      </SvgText>
+                    );
+                  })}
+                </>
+              )}
             </Svg>
           </View>
           
@@ -256,11 +423,13 @@ export function MobileHome({ language }: MobileHomeProps) {
             <Text style={styles.infoText}>{t.savesOil} • 8 {t.servings}</Text>
           </View>
           <View style={styles.infoRight}>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => setWeekOffset(prev => prev - 1)}>
               <Ionicons name="chevron-back" size={16} color="#ffffff" />
             </TouchableOpacity>
-            <Text style={styles.monthText}>November 2025</Text>
-            <TouchableOpacity>
+            <Text style={styles.monthText}>
+              {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </Text>
+            <TouchableOpacity onPress={() => setWeekOffset(prev => prev + 1)}>
               <Ionicons name="chevron-forward" size={16} color="#ffffff" />
             </TouchableOpacity>
           </View>
@@ -275,17 +444,17 @@ export function MobileHome({ language }: MobileHomeProps) {
           >
             {weekDates.map((item) => (
               <TouchableOpacity
-                key={item.date}
+                key={item.fullDate.toISOString()}
                 style={[
                   styles.dateCard,
-                  selectedDate === item.date && styles.dateCardActive,
+                  selectedDate.toDateString() === item.fullDate.toDateString() && styles.dateCardActive,
                 ]}
-                onPress={() => setSelectedDate(item.date)}
+                onPress={() => setSelectedDate(item.fullDate)}
               >
                 <Text
                   style={[
                     styles.dayText,
-                    selectedDate === item.date && styles.dayTextActive,
+                    selectedDate.toDateString() === item.fullDate.toDateString() && styles.dayTextActive,
                   ]}
                 >
                 {item.day}
@@ -293,7 +462,7 @@ export function MobileHome({ language }: MobileHomeProps) {
               <Text
                 style={[
                   styles.dateNumber,
-                  selectedDate === item.date && styles.dateNumberActive,
+                  selectedDate.toDateString() === item.fullDate.toDateString() && styles.dateNumberActive,
                 ]}
               >
                 {item.date}
@@ -311,7 +480,7 @@ export function MobileHome({ language }: MobileHomeProps) {
         <View style={styles.usageCard}>
           <View style={styles.usageHeader}>
             <Text style={styles.usageTitle}>{t.todaysOilUsage}</Text>
-            <Text style={styles.usageValue}>{dailyConsumption} / {dailyLimit} cal</Text>
+            <Text style={styles.usageValue}>{Math.round(dailyConsumption * 9)} / {dailyLimitCal} cal</Text>
           </View>
           <View style={styles.progressBarContainer}>
             <View style={[styles.progressBarFill, { width: `${(dailyConsumption / dailyLimit) * 100}%` }]} />

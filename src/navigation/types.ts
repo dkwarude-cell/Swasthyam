@@ -118,12 +118,15 @@ export type MainStackParamList = {
     moduleName?: string;
   };
   
-  // Community Screens
-  GroupManagement: undefined;
+  // Groups Screens
+  Groups: undefined;
   GroupDetail: {
     groupId: string;
     groupName?: string;
   };
+  
+  // Community Screens
+  GroupManagement: undefined;
   GroupDashboard: {
     groupId: string;
   };

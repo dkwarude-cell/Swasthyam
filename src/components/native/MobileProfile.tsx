@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,13 @@ import {
   Modal,
   Alert,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { calculateSwasthaIndex } from '../../utils/swasthaIndex';
+import apiService from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 interface MobileProfileProps {
   language: string;
@@ -85,7 +89,6 @@ const currentOil = {
   mufa: '47%',
   sfa: '21%',
   badges: ['Fortified', 'Healthy Choice', 'Heart Safe'],
-  healthScore: 92,
   remaining: '2.8L',
   daysLeft: 18,
   avgDailyUse: '155ml',
@@ -154,16 +157,33 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
   const [showAddMember, setShowAddMember] = useState(false);
   const [showUploadReport, setShowUploadReport] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showChangeOil, setShowChangeOil] = useState(false);
+  
+  // Current oil state
+  const [currentOilType, setCurrentOilType] = useState('Rice Bran Oil');
   
   // Settings state
   const [notifications, setNotifications] = useState(true);
   const [biometrics, setBiometrics] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Change oil form state
+  const [newOilName, setNewOilName] = useState('');
+  const [newOilBrand, setNewOilBrand] = useState('');
+  const [newOilType, setNewOilType] = useState('');
+  const [newOilVolume, setNewOilVolume] = useState('');
+  
+  // Groups state
+  const [groups, setGroups] = useState<any[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(true);
+  
+  // Get user from AuthContext
+  const { user } = useAuth();
 
   const cpsScore = 847;
   const totalPoints = 3450;
-  const userName = "Rajesh Sharma";
-  const userInitials = "RS";
+  const userName = user?.name || user?.email || "User";
+  const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || "U";
 
   const text = {
     en: {
@@ -239,6 +259,9 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
       viewManageGoals: 'View and manage your health goals',
       goalSettings: 'Goal Settings',
       configureGoals: 'Configure goal tracking preferences',
+      myGroups: 'My Groups',
+      myGroupsTitle: 'Group Management',
+      manageGroups: 'Manage family & school groups',
       connectedDevices: 'Connected Devices',
       deviceManagement: 'Device Management',
       manageDevices: 'Manage your smart kitchen devices',
@@ -332,6 +355,9 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
       viewManageGoals: 'अपने स्वास्थ्य लक्ष्यों को देखें और प्रबंधित करें',
       goalSettings: 'लक्ष्य सेटिंग्स',
       configureGoals: 'लक्ष्य ट्रैकिंग प्राथमिकताएं कॉन्फ़िगर करें',
+      myGroups: 'मेरे समूह',
+      myGroupsTitle: 'समूह प्रबंधन',
+      manageGroups: 'परिवार और स्कूल समूह प्रबंधित करें',
       connectedDevices: 'कनेक्टेड डिवाइस',
       deviceManagement: 'डिवाइस प्रबंधन',
       manageDevices: 'अपने स्मार्ट किचन डिवाइस प्रबंधित करें',
@@ -355,6 +381,51 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
   };
 
   const t = text[language as keyof typeof text] || text.en;
+
+  // Fetch groups on component mount
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  const fetchGroups = async () => {
+    try {
+      setLoadingGroups(true);
+      const response = await apiService.getMyGroups();
+      if (response.success && response.data) {
+        setGroups(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  const handleChangeOil = async (selectedOil: string) => {
+    try {
+      // Update local state immediately for instant UI update
+      setCurrentOilType(selectedOil);
+      
+      // Update database
+      const apiService = require('../../services/api').default;
+      const response = await apiService.updateCurrentOil(selectedOil);
+      
+      if (response.success) {
+        Alert.alert('Success', `Oil changed to ${selectedOil}`);
+      } else {
+        // Revert if API call failed
+        setCurrentOilType(currentOilType);
+        Alert.alert('Error', response.message || 'Failed to update oil');
+      }
+      
+      setShowChangeOil(false);
+    } catch (error) {
+      // Revert on error
+      setCurrentOilType(currentOilType);
+      Alert.alert('Error', 'Failed to update oil. Please try again.');
+      console.error('Error updating oil:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -426,7 +497,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                   <Ionicons name="call" size={20} color="#1b4a5a" />
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>{t.phone}</Text>
-                    <Text style={styles.infoValue}>+91 98765 43210</Text>
+                    <Text style={styles.infoValue}>{user?.phoneNumber || 'Not provided'}</Text>
                   </View>
                 </View>
                 <View style={styles.divider} />
@@ -434,15 +505,41 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                   <Ionicons name="mail" size={20} color="#1b4a5a" />
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>{t.email}</Text>
-                    <Text style={styles.infoValue}>rajesh.sharma@example.com</Text>
+                    <Text style={styles.infoValue}>{user?.email || 'Not provided'}</Text>
                   </View>
                 </View>
                 <View style={styles.divider} />
                 <View style={styles.infoRow}>
-                  <Ionicons name="calendar" size={20} color="#1b4a5a" />
+                  <Ionicons name="person" size={20} color="#1b4a5a" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>{t.dateOfBirth}</Text>
-                    <Text style={styles.infoValue}>January 15, 1983</Text>
+                    <Text style={styles.infoLabel}>Age</Text>
+                    <Text style={styles.infoValue}>{user?.age ? `${user.age} years` : 'Not provided'}</Text>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.infoRow}>
+                  <Ionicons name="male-female" size={20} color="#1b4a5a" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Gender</Text>
+                    <Text style={styles.infoValue}>{user?.gender || 'Not provided'}</Text>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.infoRow}>
+                  <Ionicons name="fitness" size={20} color="#1b4a5a" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Height / Weight</Text>
+                    <Text style={styles.infoValue}>
+                      {user?.height ? `${user.height} cm` : 'N/A'} / {user?.weight ? `${user.weight} kg` : 'N/A'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.infoRow}>
+                  <Ionicons name="analytics" size={20} color="#1b4a5a" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>BMI</Text>
+                    <Text style={styles.infoValue}>{user?.bmi ? user.bmi.toFixed(1) : 'Not calculated'}</Text>
                   </View>
                 </View>
               </View>
@@ -478,35 +575,90 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
               </View>
             </View>
 
-            {/* Family Members */}
+            {/* My Groups */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t.familyMembers}</Text>
-                <TouchableOpacity onPress={() => setShowAddMember(true)}>
-                  <Text style={styles.addButton}>{t.addMember}</Text>
+                <Text style={styles.sectionTitle}>{t.myGroups}</Text>
+                <TouchableOpacity onPress={() => navigation?.navigate('Groups')}>
+                  <Text style={styles.addButton}>View All</Text>
                 </TouchableOpacity>
               </View>
-              {familyMembers.map((member) => (
-                <View key={member.id} style={styles.memberCard}>
-                  <View style={styles.memberAvatar}>
-                    <Text style={styles.memberAvatarText}>{member.avatar}</Text>
-                  </View>
-                  <View style={styles.memberInfo}>
-                    <Text style={styles.memberName}>{member.name}</Text>
-                    <Text style={styles.memberDetails}>
-                      {member.relation} • {member.age} yrs • {member.gender}
-                    </Text>
-                    <View style={styles.memberStats}>
-                      <Text style={styles.memberStat}>
-                        {member.dailyConsumption} ml/day
-                      </Text>
-                      <View style={[styles.statusBadge, member.status === 'Excellent' && styles.statusExcellent]}>
-                        <Text style={styles.statusText}>{member.status}</Text>
-                      </View>
-                    </View>
-                  </View>
+              
+              {loadingGroups ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#1b4a5a" />
                 </View>
-              ))}
+              ) : groups.length === 0 ? (
+                <TouchableOpacity 
+                  style={styles.emptyGroupCard}
+                  onPress={() => navigation?.navigate('Groups')}
+                >
+                  <Ionicons name="people-outline" size={48} color="#d1d5db" />
+                  <Text style={styles.emptyGroupTitle}>No Groups Yet</Text>
+                  <Text style={styles.emptyGroupSubtitle}>
+                    Create or join a group to track oil consumption with family or friends
+                  </Text>
+                  <View style={styles.createGroupButton}>
+                    <Ionicons name="add" size={20} color="#ffffff" />
+                    <Text style={styles.createGroupButtonText}>Create Group</Text>
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                groups.slice(0, 3).map((group) => {
+                  const adminId = typeof group.admin === 'string' ? group.admin : group.admin?._id;
+                  const isAdmin = adminId === user?._id;
+                  const memberCount = group.members?.length || 0;
+                  const activeMemberCount = group.members?.filter((m: any) => m.status === 'active').length || 0;
+                  
+                  return (
+                    <TouchableOpacity
+                      key={group._id}
+                      style={styles.memberCard}
+                      onPress={() => navigation?.navigate('GroupDetail', { 
+                        groupId: group._id,
+                        groupName: group.name 
+                      })}
+                    >
+                      <View style={[styles.memberAvatar, { backgroundColor: group.type === 'family' ? '#e0f2fe' : '#fef3c7' }]}>
+                        <Ionicons 
+                          name={group.type === 'family' ? 'home' : group.type === 'school' ? 'school' : 'people'} 
+                          size={24} 
+                          color={group.type === 'family' ? '#0284c7' : '#f59e0b'} 
+                        />
+                      </View>
+                      <View style={styles.memberInfo}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={styles.memberName}>{group.name}</Text>
+                          {isAdmin && (
+                            <View style={styles.adminBadge}>
+                              <Text style={styles.adminBadgeText}>Admin</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.memberDetails}>
+                          {group.type.charAt(0).toUpperCase() + group.type.slice(1)} • {activeMemberCount} active members
+                        </Text>
+                        {group.description && (
+                          <Text style={styles.groupDescription} numberOfLines={1}>
+                            {group.description}
+                          </Text>
+                        )}
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+              
+              {groups.length > 3 && (
+                <TouchableOpacity 
+                  style={styles.viewAllButton}
+                  onPress={() => navigation?.navigate('Groups')}
+                >
+                  <Text style={styles.viewAllButtonText}>View All {groups.length} Groups</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#1b4a5a" />
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Verification */}
@@ -529,7 +681,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                   <Ionicons name="call" size={24} color="#16a34a" />
                   <View style={styles.verificationInfo}>
                     <Text style={styles.verificationTitle}>{t.phoneVerified}</Text>
-                    <Text style={styles.verificationSubtitle}>+91 98765 43210</Text>
+                    <Text style={styles.verificationSubtitle}>{user?.phoneNumber || user?.email || 'Not verified'}</Text>
                   </View>
                   <Ionicons name="checkmark-circle" size={24} color="#16a34a" />
                 </View>
@@ -626,13 +778,26 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
               <Text style={styles.sectionTitle}>{t.currentOil}</Text>
               <View style={styles.oilCard}>
                 <View style={styles.oilHeader}>
-                  <View>
-                    <Text style={styles.oilName}>{currentOil.name}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.oilName}>{currentOilType}</Text>
                     <Text style={styles.oilBrand}>{currentOil.brand}</Text>
-                  </View>
-                  <View style={styles.healthScoreBadge}>
-                    <Text style={styles.healthScoreText}>{currentOil.healthScore}</Text>
-                    <Text style={styles.healthScoreLabel}>Score</Text>
+                    {(() => {
+                      const swasthaData = calculateSwasthaIndex(currentOilType);
+                      return (
+                        <View style={styles.swasthaIndexContainer}>
+                          <View style={[styles.swasthaIndexBadge, { backgroundColor: swasthaData.color }]}>
+                            <Text style={styles.swasthaIndexScore}>{swasthaData.swastha_index}</Text>
+                            <Text style={styles.swasthaIndexLabel}>Swastha Index</Text>
+                          </View>
+                          <View style={styles.swasthaRating}>
+                            <Text style={[styles.swasthaRatingText, { color: swasthaData.color }]}>
+                              {swasthaData.rating_category}
+                            </Text>
+                            <Text style={styles.swasthaExplanation}>{swasthaData.explanation}</Text>
+                          </View>
+                        </View>
+                      );
+                    })()}
                   </View>
                 </View>
 
@@ -736,7 +901,10 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
             </View>
 
             {/* Change Oil Button */}
-            <TouchableOpacity style={styles.changeOilButton}>
+            <TouchableOpacity 
+              style={styles.changeOilButton}
+              onPress={() => setShowChangeOil(true)}
+            >
               <Ionicons name="water" size={20} color="#ffffff" />
               <Text style={styles.changeOilText}>{t.changeOil}</Text>
             </TouchableOpacity>
@@ -951,6 +1119,24 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
               </View>
             </View>
 
+            {/* Groups Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t.myGroupsTitle}</Text>
+              <View style={styles.card}>
+                <TouchableOpacity 
+                  style={styles.settingRow}
+                  onPress={() => navigation?.navigate('Groups')}
+                >
+                  <Ionicons name="people-outline" size={20} color="#1b4a5a" />
+                  <View style={styles.settingInfo}>
+                    <Text style={styles.settingText}>{t.myGroups}</Text>
+                    <Text style={styles.settingSubtext}>{t.manageGroups}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Connected Devices Section */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t.connectedDevices}</Text>
@@ -1094,6 +1280,74 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
           </View>
         )}
       </ScrollView>
+
+      {/* Change Oil Modal */}
+      <Modal
+        visible={showChangeOil}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowChangeOil(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Change/Update Oil</Text>
+              <TouchableOpacity onPress={() => setShowChangeOil(false)}>
+                <Ionicons name="close" size={24} color="#5B5B5B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Select Oil Type</Text>
+                <View style={styles.oilTypeList}>
+                  {[
+                    'Sunflower Oil',
+                    'Rice Bran Oil',
+                    'Mustard Oil',
+                    'Groundnut Oil',
+                    'Olive Oil',
+                    'Coconut Oil',
+                    'Sesame Oil',
+                    'Ghee',
+                    'Butter',
+                    'Palm Oil',
+                    'Palmolein Oil',
+                    'Soybean Oil',
+                    'Canola Oil',
+                    'Corn Oil',
+                    'Cottonseed Oil',
+                    'Safflower Oil',
+                    'Vegetable Oil',
+                  ].map((oil) => {
+                    const swasthaData = calculateSwasthaIndex(oil);
+                    const isSelected = newOilType === oil;
+                    return (
+                      <TouchableOpacity
+                        key={oil}
+                        style={[styles.oilTypeItem, isSelected && styles.oilTypeItemSelected]}
+                        onPress={() => handleChangeOil(oil)}
+                      >
+                        <View style={styles.oilTypeItemContent}>
+                          <View style={styles.oilTypeItemLeft}>
+                            <Text style={[styles.oilTypeItemName, isSelected && styles.oilTypeItemNameSelected]}>
+                              {oil}
+                            </Text>
+                            <Text style={styles.oilTypeItemCategory}>{swasthaData.rating_category}</Text>
+                          </View>
+                          <View style={[styles.oilTypeItemBadge, { backgroundColor: swasthaData.color }]}>
+                            <Text style={styles.oilTypeItemScore}>{swasthaData.swastha_index}</Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1495,8 +1749,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(27, 74, 90, 0.1)',
   },
   oilHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     marginBottom: 20,
   },
   oilName: {
@@ -1508,6 +1761,46 @@ const styles = StyleSheet.create({
   oilBrand: {
     fontSize: 14,
     color: '#5B5B5B',
+    marginBottom: 12,
+  },
+  swasthaIndexContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+  },
+  swasthaIndexBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    minWidth: 75,
+    maxWidth: 90,
+  },
+  swasthaIndexScore: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  swasthaIndexLabel: {
+    fontSize: 9,
+    color: '#ffffff',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  swasthaRating: {
+    flex: 1,
+  },
+  swasthaRatingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  swasthaExplanation: {
+    fontSize: 11,
+    color: '#5B5B5B',
+    lineHeight: 16,
   },
   healthScoreBadge: {
     width: 60,
@@ -1528,11 +1821,13 @@ const styles = StyleSheet.create({
   },
   oilStats: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginBottom: 16,
   },
   oilStat: {
     flex: 1,
+    minWidth: 90,
     backgroundColor: '#fafbfa',
     borderRadius: 12,
     padding: 12,
@@ -1778,5 +2073,266 @@ const styles = StyleSheet.create({
   reportListType: {
     fontSize: 11,
     color: '#5B5B5B',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#040707',
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#040707',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#040707',
+  },
+  pickerContainer: {
+    marginBottom: 8,
+  },
+  pickerButton: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pickerButtonText: {
+    fontSize: 16,
+    color: '#040707',
+  },
+  placeholderText: {
+    color: '#9ca3af',
+  },
+  swasthaPreview: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  swasthaPreviewTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 12,
+  },
+  swasthaPreviewContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  swasthaPreviewBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  swasthaPreviewScore: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  swasthaPreviewLabel: {
+    fontSize: 10,
+    color: '#ffffff',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  swasthaPreviewDetails: {
+    flex: 1,
+  },
+  swasthaPreviewCategory: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  swasthaPreviewExplanation: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    lineHeight: 18,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  cancelModalButton: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cancelModalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#5B5B5B',
+  },
+  saveModalButton: {
+    flex: 1,
+    backgroundColor: '#1b4a5a',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  saveModalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  oilTypeList: {
+    gap: 8,
+  },
+  oilTypeItem: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 16,
+  },
+  oilTypeItemSelected: {
+    borderColor: '#1b4a5a',
+    backgroundColor: '#f0f9ff',
+  },
+  oilTypeItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  oilTypeItemLeft: {
+    flex: 1,
+  },
+  oilTypeItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 4,
+  },
+  oilTypeItemNameSelected: {
+    color: '#1b4a5a',
+  },
+  oilTypeItemCategory: {
+    fontSize: 13,
+    color: '#5B5B5B',
+  },
+  oilTypeItemBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  oilTypeItemScore: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyGroupCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(27, 74, 90, 0.1)',
+    alignItems: 'center',
+  },
+  emptyGroupTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#040707',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyGroupSubtitle: {
+    fontSize: 14,
+    color: '#5B5B5B',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  createGroupButton: {
+    backgroundColor: '#1b4a5a',
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  createGroupButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  adminBadge: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  adminBadgeText: {
+    fontSize: 10,
+    color: '#f59e0b',
+    fontWeight: '600',
+  },
+  groupDescription: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    marginTop: 4,
+  },
+  viewAllButton: {
+    backgroundColor: '#E7F2F1',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  viewAllButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1b4a5a',
   },
 });

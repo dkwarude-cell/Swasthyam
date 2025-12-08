@@ -5,6 +5,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const connectDB = require('./config/database');
 const authRoutes = require('./routes/auth');
+const oilConsumptionRoutes = require('./routes/oilConsumption');
+const groupRoutes = require('./routes/groups');
 const { errorHandler, notFound } = require('./middleware/error');
 
 // Initialize Express
@@ -60,6 +62,8 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/oil', oilConsumptionRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -77,6 +81,14 @@ app.get('/', (req, res) => {
         completeOnboarding: 'POST /api/auth/complete-onboarding',
         changePassword: 'PUT /api/auth/change-password',
         deleteAccount: 'DELETE /api/auth/account'
+      },
+      oil: {
+        logConsumption: 'POST /api/oil/log',
+        getEntries: 'GET /api/oil/entries',
+        getToday: 'GET /api/oil/today',
+        getWeeklyStats: 'GET /api/oil/stats/weekly',
+        updateEntry: 'PUT /api/oil/:id',
+        deleteEntry: 'DELETE /api/oil/:id'
       }
     }
   });

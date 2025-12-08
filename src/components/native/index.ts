@@ -39,6 +39,7 @@ export { MobileOilTracker } from './MobileOilTracker';
 export { MobileRecipes } from './MobileRecipes';
 export { MobileChallenges } from './MobileChallenges';
 export { MobileEducation } from './MobileEducation';
+export { MobileGroups } from './MobileGroups';
 
 // ============================================
 // Detail Screens

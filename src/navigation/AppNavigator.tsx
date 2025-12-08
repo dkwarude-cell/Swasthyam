@@ -56,6 +56,7 @@ import { MobileOilTracker } from '../components/native/MobileOilTracker';
 import { MobileRecipes } from '../components/native/MobileRecipes';
 import { MobileChallenges } from '../components/native/MobileChallenges';
 import { MobileEducation } from '../components/native/MobileEducation';
+import { MobileGroups } from '../components/native/MobileGroups';
 
 // ============================================
 // Detail Screens
@@ -360,9 +361,16 @@ function MainStackNavigator({ language, onLogout }: MainStackProps) {
         component={EducationModuleScreen as React.ComponentType<{}>} 
       />
 
+      {/* Groups Screens */}
+      <MainStack.Screen name="Groups">
+        {(props) => <MobileGroups {...props} language={language} />}
+      </MainStack.Screen>
+      <MainStack.Screen name="GroupDetail">
+        {(props) => <GroupDetailScreen {...props} language={language} />}
+      </MainStack.Screen>
+
       {/* Community Screens */}
       <MainStack.Screen name="GroupManagement" component={GroupManagementScreen} />
-      <MainStack.Screen name="GroupDetail" component={GroupDetailScreen} />
       <MainStack.Screen 
         name="GroupDashboard" 
         component={GroupDashboardScreen as React.ComponentType<{}>} 

@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import { Ionicons } from '@expo/vector-icons';
 
 interface BasicInfoScreenProps {
   onNext: (data: any) => void;
@@ -23,21 +23,52 @@ export function BasicInfoScreen({ onNext, onSkip, onBack, language }: BasicInfoS
   const [gender, setGender] = useState('');
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
+  const [activityLevel, setActivityLevel] = useState('');
   const [bmi, setBmi] = useState<number | null>(null);
+  const [bmr, setBmr] = useState<number | null>(null);
+  const [tdee, setTdee] = useState<number | null>(null);
 
-  // Calculate BMI when weight and height change
+  // Calculate BMI and BMR when inputs change
   useEffect(() => {
-    if (weight && height) {
+    if (weight && height && age && gender) {
       const weightNum = parseFloat(weight);
-      const heightNum = parseFloat(height) / 100; // Convert cm to meters
-      if (weightNum > 0 && heightNum > 0) {
-        const calculatedBmi = weightNum / (heightNum * heightNum);
+      const heightNum = parseFloat(height);
+      const ageNum = parseInt(age);
+      
+      if (weightNum > 0 && heightNum > 0 && ageNum > 0) {
+        // Calculate BMI
+        const heightM = heightNum / 100; // Convert cm to meters
+        const calculatedBmi = weightNum / (heightM * heightM);
         setBmi(calculatedBmi);
+        
+        // Calculate BMR using Mifflin-St Jeor equation
+        let calculatedBmr = 10 * weightNum + 6.25 * heightNum - 5 * ageNum;
+        if (gender === 'male') {
+          calculatedBmr += 5;
+        } else if (gender === 'female') {
+          calculatedBmr -= 161;
+        }
+        setBmr(Math.round(calculatedBmr));
+        
+        // Calculate TDEE if activity level is selected
+        if (activityLevel) {
+          const activityFactors: Record<string, number> = {
+            'sedentary': 1.2,
+            'lightly-active': 1.375,
+            'moderately-active': 1.55,
+            'very-active': 1.725,
+            'extra-active': 1.9
+          };
+          const factor = activityFactors[activityLevel] || 1.5;
+          setTdee(Math.round(calculatedBmr * factor));
+        }
       }
     } else {
       setBmi(null);
+      setBmr(null);
+      setTdee(null);
     }
-  }, [weight, height]);
+  }, [weight, height, age, gender, activityLevel]);
 
   const getBMICategory = (bmi: number) => {
     if (bmi < 18.5) return { text: 'Underweight', color: '#3b82f6' };
@@ -54,10 +85,30 @@ export function BasicInfoScreen({ onNext, onSkip, onBack, language }: BasicInfoS
   };
 
   const handleContinue = () => {
-    onNext({ name, age, gender, weight, height, bmi });
+    const activityFactors: Record<string, number> = {
+      'sedentary': 1.2,
+      'lightly-active': 1.375,
+      'moderately-active': 1.55,
+      'very-active': 1.725,
+      'extra-active': 1.9
+    };
+    const activityFactor = activityFactors[activityLevel] || 1.5;
+    
+    onNext({ 
+      name, 
+      age: parseInt(age), 
+      gender, 
+      weight: parseFloat(weight), 
+      height: parseFloat(height), 
+      bmi,
+      bmr,
+      activityLevel,
+      activityFactor,
+      tdee
+    });
   };
 
-  const isFormValid = name && age && gender && weight && height;
+  const isFormValid = name && age && gender && weight && height && activityLevel;
 
   return (
     <View style={styles.container}>
@@ -155,29 +206,67 @@ export function BasicInfoScreen({ onNext, onSkip, onBack, language }: BasicInfoS
             />
           </View>
 
-          {/* BMI Display */}
-          {bmi !== null && (
-            <View style={styles.bmiCard}>
-              <View style={styles.bmiRow}>
-                <Text style={styles.bmiLabel}>Your BMI</Text>
-                <Text style={styles.bmiValue}>{bmi.toFixed(1)}</Text>
+          {/* Activity Level Picker */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Activity Level</Text>
+            <Text style={styles.helperText}>How active are you on a daily basis?</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={activityLevel}
+                onValueChange={setActivityLevel}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select activity level" value="" />
+                <Picker.Item label="Sedentary (little to no exercise)" value="sedentary" />
+                <Picker.Item label="Lightly Active (1-3 days/week)" value="lightly-active" />
+                <Picker.Item label="Moderately Active (3-5 days/week)" value="moderately-active" />
+                <Picker.Item label="Very Active (6-7 days/week)" value="very-active" />
+                <Picker.Item label="Extra Active (athlete/physical job)" value="extra-active" />
+              </Picker>
+            </View>
+          </View>
+
+          {/* Metabolic Info Display */}
+          {bmr !== null && (
+            <View style={styles.metabolicCard}>
+              <View style={styles.metabolicHeader}>
+                <Ionicons name="fitness" size={20} color="#1b4a5a" />
+                <Text style={styles.metabolicTitle}>Your Metabolic Profile</Text>
               </View>
-              <View style={styles.bmiRow}>
-                <Text style={styles.bmiLabel}>Category</Text>
-                <Text style={[styles.bmiCategory, { color: getBMICategory(bmi).color }]}>
-                  {getBMICategory(bmi).text}
+              
+              <View style={styles.metabolicRow}>
+                <Text style={styles.metabolicLabel}>BMI</Text>
+                <View style={styles.metabolicValueContainer}>
+                  <Text style={styles.metabolicValue}>{bmi?.toFixed(1)}</Text>
+                  <Text style={[styles.metabolicCategory, { color: getBMICategory(bmi!).color }]}>
+                    {getBMICategory(bmi!).text}
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.metabolicRow}>
+                <Text style={styles.metabolicLabel}>BMR</Text>
+                <View style={styles.metabolicValueContainer}>
+                  <Text style={styles.metabolicValue}>{bmr} kcal/day</Text>
+                  <Text style={styles.metabolicSubtext}>Your resting metabolism</Text>
+                </View>
+              </View>
+              
+              {tdee && (
+                <View style={styles.metabolicRow}>
+                  <Text style={styles.metabolicLabel}>TDEE</Text>
+                  <View style={styles.metabolicValueContainer}>
+                    <Text style={styles.metabolicValue}>{tdee} kcal/day</Text>
+                    <Text style={styles.metabolicSubtext}>Your daily calorie needs</Text>
+                  </View>
+                </View>
+              )}
+              
+              <View style={styles.metabolicInfo}>
+                <Ionicons name="information-circle" size={16} color="#3b82f6" />
+                <Text style={styles.metabolicInfoText}>
+                  Your personalized oil limit will be calculated based on these values
                 </Text>
-              </View>
-              <View style={styles.bmiProgress}>
-                <View
-                  style={[
-                    styles.bmiProgressFill,
-                    {
-                      width: `${Math.min((bmi / 40) * 100, 100)}%`,
-                      backgroundColor: getBMIColor(bmi),
-                    },
-                  ]}
-                />
               </View>
             </View>
           )}
@@ -368,5 +457,75 @@ const styles = StyleSheet.create({
   skipButtonText: {
     color: '#5B5B5B',
     fontSize: 14,
+  },
+  helperText: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
+  },
+  metabolicCard: {
+    backgroundColor: '#F0F9FF',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginTop: 16,
+  },
+  metabolicHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  metabolicTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1b4a5a',
+  },
+  metabolicRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#DBEAFE',
+  },
+  metabolicLabel: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  metabolicValueContainer: {
+    alignItems: 'flex-end',
+  },
+  metabolicValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1b4a5a',
+  },
+  metabolicCategory: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  metabolicSubtext: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  metabolicInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#DBEAFE',
+  },
+  metabolicInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#3b82f6',
+    lineHeight: 16,
   },
 });
