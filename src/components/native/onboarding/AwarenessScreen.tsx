@@ -1,13 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Image,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface AwarenessScreenProps {
@@ -15,210 +14,337 @@ interface AwarenessScreenProps {
   language: string;
 }
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export function AwarenessScreen({ onStart, language }: AwarenessScreenProps) {
-  const features = [
+  const [currentScreen, setCurrentScreen] = useState(0);
+  const [imageError, setImageError] = useState(false);
+  
+  console.log('AwarenessScreen mounted, currentScreen:', currentScreen);
+
+  // Simplified approach - just use static images without complex highlights
+  const handleNextScreen = () => {
+    console.log('handleNextScreen called, current:', currentScreen);
+    if (currentScreen < 4) {
+      setCurrentScreen(currentScreen + 1);
+      setImageError(false); // Reset error state for next image
+    } else {
+      console.log('Calling onStart');
+      onStart();
+    }
+  };
+
+  // Define images inline for better mobile compatibility
+  const getImage = (index: number) => {
+    switch(index) {
+      case 0: return require('../../../../assets/onboarding/awareness1.jpg');
+      case 1: return require('../../../../assets/onboarding/awareness2.jpg');
+      case 2: return require('../../../../assets/onboarding/awareness3.jpg');
+      case 3: return require('../../../../assets/onboarding/awareness4.jpg');
+      case 4: return require('../../../../assets/onboarding/awareness5.jpg');
+      default: return require('../../../../assets/onboarding/awareness1.jpg');
+    }
+  };
+
+  const screens = [
     {
-      icon: 'heart' as const,
-      title: 'Smart Tracking',
-      subtitle: 'Monitor your daily oil consumption',
+      imageIndex: 0,
+      title: '',
+      caption: "India once cooked with local natural oils, mustard, coconut, sesame, and groundnut, used for centuries in our traditional diets",
+      captionHighlights: [
+        { text: "mustard, coconut, sesame, and groundnut", color: '#8bc34a' }
+      ],
+      subCaption: "Till the 1970–80s, consumption stayed low at 5–7 kg per person",
+      subCaptionHighlights: [
+        { text: "5–7 kg per person", color: '#8bc34a' }
+      ],
     },
     {
-      icon: 'trophy' as const,
-      title: 'AI Recommendations',
-      subtitle: 'Personalized recipe optimization',
+      imageIndex: 1,
+      title: '',
+      caption: "Refined oils and vanaspati entered Indian kitchens in the 1990s. Frying culture increased... so did dependence on packaged oils",
+      captionHighlights: [
+        { text: "Refined oils", color: '#ff7043' },
+        { text: "vanaspati", color: '#ff7043' }
+      ],
+      subCaption: null,
+      subCaptionHighlights: [],
     },
     {
-      icon: 'people' as const,
-      title: 'Community Engagement',
-      subtitle: 'Join India\'s health movement',
+      imageIndex: 2,
+      title: "Today's Reality",
+      caption: "India now consumes 19–20 kg per person – nearly 3× more than before",
+      captionHighlights: [
+        { text: "19–20 kg per person", color: '#f44336' },
+        { text: "3× more", color: '#f44336' }
+      ],
+      subCaption: "This massive rise has led to heart disease, obesity, and diabetes becoming India's biggest health challenges",
+      subCaptionHighlights: [
+        { text: "heart disease, obesity, and diabetes", color: '#f44336' }
+      ],
     },
     {
-      icon: 'shield-checkmark' as const,
-      title: 'Healthy Kitchen Verified',
-      subtitle: 'Blockchain-verified restaurants',
+      imageIndex: 3,
+      title: "The Solution",
+      caption: "Switching back to natural oils can help reduce the risk of these diseases",
+      captionHighlights: [
+        { text: "Switching back to natural oils", color: '#4caf50' }
+      ],
+      subCaption: "Mustard, coconut, sesame, and groundnut are healthier alternatives to refined oils",
+      subCaptionHighlights: [
+        { text: "Mustard, coconut, sesame, and groundnut", color: '#4caf50' }
+      ],
+    },
+    {
+      imageIndex: 4,
+      title: "Join the Movement",
+      caption: "Join us in promoting the use of natural oils for a healthier India",
+      captionHighlights: [
+        { text: "Join us", color: '#2196f3' }
+      ],
+      subCaption: "Together, we can make a difference",
+      subCaptionHighlights: [
+        { text: "Together", color: '#2196f3' }
+      ],
     },
   ];
 
-  return (
-    <LinearGradient
-      colors={['#1b4a5a', '#2a5a6a']}
-      style={styles.container}
-    >
-      {/* Content */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Logo/Icon */}
-        <View style={styles.logoContainer}>
-          <Ionicons name="water" size={56} color="#ffffff" />
-        </View>
+  const currentSlide = screens[currentScreen];
 
-        {/* Title */}
-        <Text style={styles.title}>Welcome to SwasthTel</Text>
+  const renderHighlightedText = (text: string, highlights: any[], baseStyle: any) => {
+    if (!highlights || highlights.length === 0) {
+      return <Text style={baseStyle}>{text}</Text>;
+    }
 
-        {/* Subtitle */}
-        <Text style={styles.subtitle}>
-          Your journey to healthier oil consumption starts here
+    const parts = [];
+    let lastIndex = 0;
+
+    highlights.forEach((highlight, idx) => {
+      const startIndex = text.indexOf(highlight.text, lastIndex);
+      if (startIndex !== -1) {
+        // Add text before highlight
+        if (startIndex > lastIndex) {
+          parts.push(
+            <Text key={`normal-${idx}`}>
+              {text.substring(lastIndex, startIndex)}
+            </Text>
+          );
+        }
+        // Add highlighted text
+        parts.push(
+          <Text key={`highlight-${idx}`} style={{ color: highlight.color, fontWeight: '600' }}>
+            {highlight.text}
+          </Text>
+        );
+        lastIndex = startIndex + highlight.text.length;
+      }
+    });
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(
+        <Text key="remaining">
+          {text.substring(lastIndex)}
         </Text>
+      );
+    }
 
-        {/* Feature Cards */}
-        <View style={styles.featuresContainer}>
-          {features.map((feature, index) => (
-            <View key={index} style={styles.featureCard}>
-              <View style={styles.featureIcon}>
-                <Ionicons name={feature.icon} size={24} color="#ffffff" />
-              </View>
-              <View style={styles.featureText}>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureSubtitle}>{feature.subtitle}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+    return <Text style={baseStyle}>{parts}</Text>;
+  };
 
-        {/* Stats */}
-        <View style={styles.statsCard}>
-          <Text style={styles.statsLabel}>National Goal</Text>
-          <Text style={styles.statsValue}>10% Oil Reduction</Text>
-          <Text style={styles.statsSubtext}>
-            Join thousands in making India healthier
+  if (!currentSlide) {
+    console.error('No slide found for index:', currentScreen);
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: '#fff', fontSize: 20 }}>Error loading screen</Text>
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity 
+      style={styles.container} 
+      activeOpacity={1}
+      onPress={handleNextScreen}
+    >
+      {/* Full Screen Image */}
+      {imageError ? (
+        <View style={[styles.backgroundImage, { backgroundColor: '#1b4a5a' }]}>
+          <Text style={{ color: '#fff', textAlign: 'center', marginTop: height / 2 }}>
+            Loading...
           </Text>
         </View>
-      </ScrollView>
+      ) : (
+        <Image
+          source={getImage(currentSlide.imageIndex)}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+          onError={(error) => {
+            console.error('Image load error:', error.nativeEvent?.error);
+            setImageError(true);
+          }}
+          onLoad={() => {
+            console.log('Image loaded successfully for screen:', currentScreen);
+            setImageError(false);
+          }}
+        />
+      )}
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.startButton} onPress={onStart}>
-          <Text style={styles.startButtonText}>Start Your Journey</Text>
+      {/* Gradient Overlay at Bottom */}
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)']}
+        style={styles.gradientOverlay}
+      >
+        {/* Content Container */}
+        <View style={styles.contentContainer}>
+          {/* Title */}
+          {currentSlide.title ? (
+            <Text style={styles.title}>{currentSlide.title}</Text>
+          ) : null}
+          
+          {/* Caption */}
+          {renderHighlightedText(currentSlide.caption, currentSlide.captionHighlights, styles.caption)}
+          
+          {/* Sub Caption */}
+          {currentSlide.subCaption ? (
+            renderHighlightedText(currentSlide.subCaption, currentSlide.subCaptionHighlights, styles.subCaption)
+          ) : null}
+        </View>
+
+        {/* Bottom Navigation */}
+        <View style={styles.bottomNav}>
+          {/* Progress Indicators */}
+          <View style={styles.progressContainer}>
+            {screens.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.progressDot,
+                  currentScreen === index && styles.progressDotActive,
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* Skip Button */}
+      {currentScreen < 4 && (
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={() => {
+            console.log('Skip button pressed');
+            onStart();
+          }}
+        >
+          <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
-      </View>
-    </LinearGradient>
+      )}
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000',
   },
-  scrollView: {
-    flex: 1,
+  backgroundImage: {
+    width: width,
+    height: height,
+    position: 'absolute',
   },
-  scrollContent: {
+  gradientOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: height * 0.5,
+    justifyContent: 'flex-end',
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 24,
-    alignItems: 'center',
+    paddingBottom: 40,
   },
-  logoContainer: {
-    width: 96,
-    height: 96,
-    backgroundColor: '#fcaf56',
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+  contentContainer: {
+    marginBottom: 30,
   },
   title: {
     color: '#ffffff',
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    textAlign: 'center',
     marginBottom: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  subtitle: {
-    color: '#ffeedd',
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 48,
-    paddingHorizontal: 16,
-  },
-  featuresContainer: {
-    width: '100%',
-    marginBottom: 48,
-  },
-  featureCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    gap: 16,
-  },
-  featureIcon: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#fcaf56',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  featureText: {
-    flex: 1,
-  },
-  featureTitle: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  featureSubtitle: {
-    color: '#ffeedd',
-    fontSize: 14,
-  },
-  statsCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    alignItems: 'center',
-  },
-  statsLabel: {
-    color: '#fcaf56',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  statsValue: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statsSubtext: {
-    color: '#ffeedd',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  footer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  startButton: {
-    backgroundColor: '#fcaf56',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  startButtonText: {
+  caption: {
     color: '#ffffff',
     fontSize: 18,
+    lineHeight: 26,
+    marginBottom: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  subCaption: {
+    color: '#ffffff',
+    fontSize: 16,
+    lineHeight: 24,
+    opacity: 0.9,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  progressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  progressDotActive: {
+    width: 32,
+    backgroundColor: '#ffffff',
+  },
+  skipButton: {
+    position: 'absolute',
+    top: 40,
+    right: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  skipText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  highlightGreen: {
+    color: '#8bc34a',
+    fontWeight: '600',
+  },
+  highlightOrange: {
+    color: '#ff7043',
+    fontWeight: '600',
+  },
+  highlightRed: {
+    color: '#f44336',
+    fontWeight: '600',
+  },
+  highlightGreenDark: {
+    color: '#4caf50',
+    fontWeight: '600',
+  },
+  highlightBlue: {
+    color: '#2196f3',
     fontWeight: '600',
   },
 });

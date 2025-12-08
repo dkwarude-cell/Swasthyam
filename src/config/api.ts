@@ -74,6 +74,13 @@ export const API_ENDPOINTS = {
     UPDATE: (id: string) => `/groups/${id}`,
     DELETE: (id: string) => `/groups/${id}`,
   },
+  // Barcode scanning endpoints
+  BARCODE: {
+    SCAN: '/barcode/scan',
+    SCAN_BASE64: '/barcode/scan-base64',
+    LOOKUP: (barcode: string) => `/barcode/lookup/${barcode}`,
+    SEARCH: '/barcode/search',
+  },
 };
 
 export default {

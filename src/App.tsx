@@ -11,7 +11,11 @@ function AppContent() {
   
   return (
     <>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <StatusBar 
+        style={isDark ? 'light' : 'dark'} 
+        backgroundColor="transparent"
+        translucent={false}
+      />
       <AppNavigator />
     </>
   );

@@ -28,7 +28,7 @@ interface MobileOilTrackerProps {
 }
 
 interface OilEntry {
-  id: number;
+  id: string;
   dish: string;
   amount: number;
   oil: string;
@@ -92,9 +92,9 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
     return entryDay === selectedDay;
   });
   const dayTotal = dayEntries.reduce((sum, entry) => sum + entry.amount, 0);
-  const dayTotalCal = Math.round(dayTotal * 9); // Convert ml to calories (9 cal/ml for oil)
+  const dayTotalCal = Math.round(dayTotal * 9 * (6.25 / 100)); // Convert ml to calories
   const dayTarget = personalizedLimit || 40; // Use personalized limit or fallback to 40ml
-  const dayTargetCal = Math.round(dayTarget * 9);
+  const dayTargetCal = Math.round(dayTarget * 9 * (6.25 / 100));
   const percentage = (dayTotal / dayTarget) * 100;
 
   // Load entries when date changes
@@ -183,7 +183,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
       if (response.success && response.data) {
         // Transform API entries to local format
         const formattedEntries: OilEntry[] = response.data.entries.map(entry => ({
-          id: parseInt(entry._id.slice(-8), 16), // Use last 8 chars of ID as number
+          id: entry._id, // Store the actual MongoDB _id for deletion
           dish: entry.foodName,
           amount: entry.oilAmount,
           oil: entry.oilType,
@@ -214,7 +214,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
     // Set default unit based on food type
     if (food.countable) {
       setUnit('pieces');
-    } else if (food.category === 'sabji' || food.category === 'dal') {
+    } else if (food.category === 'dal' || food.category === 'gravy' || food.category === 'rich_curry') {
       setUnit('bowls');
     } else {
       setUnit('grams');
@@ -233,7 +233,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
     }
   };
 
-  const handleDeleteEntry = async (entryId: number) => {
+  const handleDeleteEntry = async (entryId: string) => {
     Alert.alert(
       'Delete Entry',
       'Are you sure you want to delete this entry?',
@@ -245,10 +245,16 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
           onPress: async () => {
             try {
               setIsLoading(true);
-              // Note: Add API endpoint for deletion if available
-              setEntries(prev => prev.filter(e => e.id !== entryId));
-              Alert.alert('Success', 'Entry deleted');
+              const response = await apiService.deleteOilEntry(entryId);
+              if (response.success) {
+                Alert.alert('Success', 'Entry deleted successfully');
+                // Reload entries from server
+                await loadEntries();
+              } else {
+                Alert.alert('Error', 'Failed to delete entry');
+              }
             } catch (error) {
+              console.error('Delete error:', error);
               Alert.alert('Error', 'Failed to delete entry');
             } finally {
               setIsLoading(false);
@@ -283,7 +289,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
         const consumptionData = Array.from(selectedMembers).map(userId => ({
           userId,
           foodName: selectedFood.name,
-          oilType: selectedFood.oilType,
+          oilType: 'Vegetable Oil',
           oilAmount,
           quantity: parseFloat(quantity),
           unit,
@@ -293,7 +299,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
         const response = await apiService.logGroupConsumption(selectedGroup, consumptionData);
         
         if (response.success) {
-          const caloriesLogged = Math.round(oilAmount * 9);
+          const caloriesLogged = Math.round(oilAmount * 9 * (6.25 / 100));
           Alert.alert(
             'Success', 
             `Logged ${caloriesLogged} cal (${oilAmount.toFixed(1)}ml) for ${selectedMembers.size} member(s)`
@@ -315,7 +321,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
         // Individual logging
         const response = await apiService.logOilConsumption({
           foodName: selectedFood.name,
-          oilType: selectedFood.oilType,
+          oilType: 'Vegetable Oil',
           oilAmount,
           quantity: parseFloat(quantity),
           unit,
@@ -326,10 +332,10 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
         if (response.success && response.data) {
           // Add the new entry to local state
           const newEntry: OilEntry = {
-            id: Date.now(),
+            id: Date.now().toString(),
             dish: selectedFood.name,
             amount: Math.round(oilAmount * 10) / 10,
-            oil: selectedFood.oilType,
+            oil: 'Vegetable Oil',
             time: new Date(consumedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
             mealType,
             quantity: parseFloat(quantity),
@@ -346,8 +352,8 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
           } else {
             // Add new entry
             setEntries(prev => [newEntry, ...prev]);
-            const caloriesLogged = Math.round(oilAmount * 9);
-            Alert.alert('Success', `Logged ${caloriesLogged} cal (${oilAmount.toFixed(1)}ml) of ${selectedFood.oilType}`);
+            const caloriesLogged = Math.round(oilAmount * 9 * (6.25 / 100));
+            Alert.alert('Success', `Logged ${caloriesLogged} cal (${oilAmount.toFixed(1)}ml)`);
           }
           
           // Reset form
@@ -510,7 +516,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                       >
                         <View style={styles.searchResultContent}>
                           <Text style={styles.searchResultName}>{food.name}</Text>
-                          <Text style={styles.searchResultCategory}>{food.category} • {food.oilType}</Text>
+                          <Text style={styles.searchResultCategory}>{food.category} • {food.oilGrams}g oil per {food.servingGrams}g</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                       </TouchableOpacity>
@@ -527,7 +533,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                       <View style={styles.selectedFoodInfo}>
                         <Text style={styles.selectedFoodName}>{selectedFood.name}</Text>
                         <Text style={styles.selectedFoodMeta}>
-                          {selectedFood.category} • {selectedFood.oilType}
+                          {selectedFood.category} • {selectedFood.oilGrams}g oil per serving
                         </Text>
                       </View>
                       <TouchableOpacity onPress={() => setSelectedFood(null)}>
@@ -558,7 +564,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                             </Text>
                           </TouchableOpacity>
                         )}
-                        {(selectedFood.category === 'sabji' || selectedFood.category === 'dal') && (
+                        {(selectedFood.category === 'dal' || selectedFood.category === 'gravy' || selectedFood.category === 'rich_curry') && (
                           <TouchableOpacity
                             style={[styles.unitButton, unit === 'bowls' && styles.unitButtonActive]}
                             onPress={() => setUnit('bowls')}
@@ -579,9 +585,16 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                       </View>
                     </View>
                     {quantity && (
-                      <Text style={styles.oilEstimate}>
-                        ≈ {Math.round(calculateOilAmount(selectedFood, parseFloat(quantity), unit) * 9)} cal ({calculateOilAmount(selectedFood, parseFloat(quantity), unit).toFixed(1)}ml) {selectedFood.oilType}
-                      </Text>
+                      <>
+                        {(unit === 'bowls' || unit === 'pieces') && (
+                          <Text style={styles.gramEquivalent}>
+                            = {parseFloat(quantity) * selectedFood.servingGrams}g
+                          </Text>
+                        )}
+                        <Text style={styles.oilEstimate}>
+                          ≈ {Math.round(calculateOilAmount(selectedFood, parseFloat(quantity), unit) * 9)} cal ({calculateOilAmount(selectedFood, parseFloat(quantity), unit).toFixed(1)}g oil)
+                        </Text>
+                      </>
                     )}
                   </View>
 
@@ -1138,11 +1151,17 @@ const styles = StyleSheet.create({
   unitButtonTextActive: {
     color: '#ffffff',
   },
+  gramEquivalent: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+    marginTop: 6,
+  },
   oilEstimate: {
     fontSize: 14,
     color: '#16a34a',
     fontWeight: '600',
-    marginTop: 8,
+    marginTop: 4,
   },
   mealTypeButtons: {
     flexDirection: 'row',

@@ -11,6 +11,7 @@ import {
   Platform,
   StatusBar,
   Animated,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -34,7 +35,6 @@ export function MobileHome({ language }: MobileHomeProps) {
   const [hasNotification, setHasNotification] = useState(true);
 
   // Speech bubble text animation
-  const speechText = "Good job, Priya! You've stayed within your oil limit today";
   const scrollX = useRef(new Animated.Value(0)).current;
   
   useEffect(() => {
@@ -97,65 +97,97 @@ export function MobileHome({ language }: MobileHomeProps) {
   const [dailyLimit, setDailyLimit] = useState(40); // ml fallback
   const [dailyLimitCal, setDailyLimitCal] = useState(360); // cal fallback
   const [weeklyData, setWeeklyData] = useState<Array<{ date: string; calories: number }>>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedDayCalories, setSelectedDayCalories] = useState(0);
+
+  // Calculate consumption percentage and determine mascot state
+  // Check if selected day exceeded limit
+  const isOverLimit = selectedDayCalories > dailyLimitCal;
+  const mascotImage = isOverLimit 
+    ? require('../../assets/Angry.png')
+    : require('../../assets/mascot_home.png');
+  
+  const speechText = isOverLimit
+    ? `Oh no! You consumed ${Math.round(selectedDayCalories)}cal on this day. That's over your ${dailyLimitCal}cal limit!`
+    : selectedDayCalories > 0 
+      ? `Great job! You stayed within your limit on this day with ${Math.round(selectedDayCalories)}cal`
+      : "Select a day to see your oil consumption";
+
+  const fetchDaily = async () => {
+    try {
+      const dateOnly = selectedDate.toISOString().split('T')[0];
+      
+      // Fetch personalized oil status
+      const statusRes = await apiService.getUserOilStatus(dateOnly);
+      if (statusRes.success && statusRes.data) {
+        setDailyLimit(statusRes.data.goalMl || 40);
+        setDailyLimitCal(Math.round(statusRes.data.goalKcal || 360));
+      }
+      
+      // Fetch today's consumption
+      const res = await apiService.getTodayOilConsumption(dateOnly);
+      const dailyTotal = (res.success && res.data) ? res.data.dailyTotal : 0;
+      setDailyConsumption(dailyTotal);
+      
+      // Calculate calories for the selected day
+      const calories = Math.round(dailyTotal * 9 * (6.25 / 100));
+      setSelectedDayCalories(calories);
+    } catch (e) {
+      console.log('Failed to load daily oil', e);
+      setDailyConsumption(0);
+      setSelectedDayCalories(0);
+    }
+  };
+  
+  const fetchWeeklyData = async () => {
+    try {
+      const data: Array<{ date: string; calories: number }> = [];
+      const today = new Date();
+      
+      // Get current day of week (0 = Sunday, 6 = Saturday)
+      const currentDay = today.getDay();
+      
+      // Calculate Sunday of current week
+      const sunday = new Date(today);
+      sunday.setDate(today.getDate() - currentDay);
+      
+      // Fetch data from Sunday to Saturday (current week)
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(sunday);
+        date.setDate(sunday.getDate() + i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const res = await apiService.getTodayOilConsumption(dateStr);
+        const calories = res.success && res.data ? Math.round((res.data.dailyTotal || 0) * 9 * (6.25 / 100)) : 0;
+        
+        data.push({
+          date: date.toLocaleDateString('en-US', { weekday: 'short' }),
+          calories
+        });
+      }
+      
+      setWeeklyData(data);
+    } catch (e) {
+      console.log('Failed to load weekly data', e);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Clear data first to force re-render
+    setWeeklyData([]);
+    setDailyConsumption(0);
+    // Then fetch new data
+    await Promise.all([fetchDaily(), fetchWeeklyData()]);
+    setRefreshing(false);
+  };
 
   useEffect(() => {
-    const fetchDaily = async () => {
-      try {
-        const dateOnly = selectedDate.toISOString().split('T')[0];
-        
-        // Fetch personalized oil status
-        const statusRes = await apiService.getUserOilStatus(dateOnly);
-        if (statusRes.success && statusRes.data) {
-          setDailyLimit(statusRes.data.goalMl || 40);
-          setDailyLimitCal(Math.round(statusRes.data.goalKcal || 360));
-        }
-        
-        // Fetch today's consumption
-        const res = await apiService.getTodayOilConsumption(dateOnly);
-        if (res.success && res.data) {
-          setDailyConsumption(res.data.dailyTotal || 0);
-        }
-      } catch (e) {
-        console.log('Failed to load daily oil', e);
-      }
-    };
     fetchDaily();
   }, [selectedDate]);
   
   // Fetch weekly consumption data (Sunday to Saturday)
   useEffect(() => {
-    const fetchWeeklyData = async () => {
-      try {
-        const data: Array<{ date: string; calories: number }> = [];
-        const today = new Date();
-        
-        // Get current day of week (0 = Sunday, 6 = Saturday)
-        const currentDay = today.getDay();
-        
-        // Calculate Sunday of current week
-        const sunday = new Date(today);
-        sunday.setDate(today.getDate() - currentDay);
-        
-        // Fetch data from Sunday to Saturday (current week)
-        for (let i = 0; i < 7; i++) {
-          const date = new Date(sunday);
-          date.setDate(sunday.getDate() + i);
-          const dateStr = date.toISOString().split('T')[0];
-          
-          const res = await apiService.getTodayOilConsumption(dateStr);
-          const calories = res.success && res.data ? Math.round((res.data.dailyTotal || 0) * 9) : 0;
-          
-          data.push({
-            date: date.toLocaleDateString('en-US', { weekday: 'short' }),
-            calories
-          });
-        }
-        
-        setWeeklyData(data);
-      } catch (e) {
-        console.log('Failed to load weekly data', e);
-      }
-    };
     fetchWeeklyData();
   }, []);
 
@@ -239,7 +271,7 @@ export function MobileHome({ language }: MobileHomeProps) {
   const t = text[language as keyof typeof text] || text.en;
 
   const handleScanFood = () => {
-    console.log('Open camera for food scanning');
+    navigation.navigate('BarcodeScanner');
   };
 
   const handleLogOil = () => {
@@ -248,7 +280,20 @@ export function MobileHome({ language }: MobileHomeProps) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.container} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#07A996']}
+            tintColor="#07A996"
+            title="Pull to refresh"
+            titleColor="#5B5B5B"
+          />
+        }
+      >
       {/* Daily Oil Consumption Chart Section */}
       <View style={styles.chartSection}>
         <Text style={styles.chartTitle}>{t.dailyOilConsumption}</Text>
@@ -256,7 +301,12 @@ export function MobileHome({ language }: MobileHomeProps) {
         <View style={styles.chartContainer}>
           {/* Chart */}
           <View style={styles.chartWrapper}>
-            <Svg width={width * 0.58} height={160} viewBox="0 0 300 130">
+            <Svg 
+              key={`chart-${weeklyData.length}-${weeklyData.map(d => d.calories).join('-')}`}
+              width={width * 0.58} 
+              height={160} 
+              viewBox="0 0 300 130"
+            >
               <Defs>
                 {/* Gradient for line */}
                 <SvgLinearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -392,7 +442,7 @@ export function MobileHome({ language }: MobileHomeProps) {
           <View style={styles.naniContainer}>
             <View style={styles.naniBox}>
               <Image
-                source={require('../../assets/mascot_home.png')}
+                source={mascotImage}
                 style={styles.naniImage}
                 resizeMode="contain"
               />
@@ -515,6 +565,149 @@ export function MobileHome({ language }: MobileHomeProps) {
           </View>
         </View>
       </View>
+
+      {/* Your Progress Section */}
+      <LinearGradient
+        colors={['#1b4a5a', '#07A996']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.progressSection}
+      >
+        <View style={styles.progressHeader}>
+          <View>
+            <Text style={styles.progressTitle}>Your Progress</Text>
+            <Text style={styles.progressSubtitle}>Last 30 days</Text>
+          </View>
+          <View style={styles.progressIconCircle}>
+            <Ionicons name="water" size={24} color="#ffffff" />
+          </View>
+        </View>
+
+        {/* Progress Stats Grid */}
+        <View style={styles.progressStatsGrid}>
+          <View style={styles.progressStatCard}>
+            <Text style={styles.progressStatLabel}>Total Oil Saved</Text>
+            <Text style={styles.progressStatValue}>420ml</Text>
+            <View style={styles.progressStatChange}>
+              <Ionicons name="arrow-up" size={14} color="#84cc16" />
+              <Text style={styles.progressStatPercentage}>18%</Text>
+            </View>
+          </View>
+
+          <View style={styles.progressStatCard}>
+            <Text style={styles.progressStatLabel}>Daily Reduction</Text>
+            <Text style={styles.progressStatValue}>14ml</Text>
+            <View style={styles.progressStatChange}>
+              <Ionicons name="arrow-up" size={14} color="#84cc16" />
+              <Text style={styles.progressStatPercentage}>12%</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Comparison Bars */}
+        <View style={styles.progressComparison}>
+          <View style={styles.comparisonRow}>
+            <Text style={styles.comparisonLabel}>Before (30 days ago)</Text>
+            <Text style={styles.comparisonValue}>78ml/day</Text>
+          </View>
+          <View style={styles.comparisonBarContainer}>
+            <View style={[styles.comparisonBar, { width: '100%', backgroundColor: '#ef4444' }]} />
+          </View>
+
+          <View style={[styles.comparisonRow, { marginTop: 12 }]}>
+            <Text style={styles.comparisonLabel}>Now (Today)</Text>
+            <Text style={styles.comparisonValue}>48ml/day</Text>
+          </View>
+          <View style={styles.comparisonBarContainer}>
+            <View style={[styles.comparisonBar, { width: '61.5%', backgroundColor: '#84cc16' }]} />
+          </View>
+        </View>
+
+        {/* Achievement Badge */}
+        <View style={styles.achievementBadge}>
+          <View style={styles.achievementIcon}>
+            <Text style={styles.achievementEmoji}>🎯</Text>
+          </View>
+          <View style={styles.achievementText}>
+            <Text style={styles.achievementTitle}>Great Progress!</Text>
+            <Text style={styles.achievementDescription}>
+              You're using 38% less oil daily
+            </Text>
+          </View>
+        </View>
+
+        {/* Government Rewards Progress */}
+        <LinearGradient
+          colors={['#fbbf24', '#f59e0b']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.governmentRewardsCard}
+        >
+          <View style={styles.rewardsHeader}>
+            <View style={styles.rewardsTrophyIcon}>
+              <Text style={styles.rewardsTrophyEmoji}>🏆</Text>
+            </View>
+            <View style={styles.rewardsHeaderText}>
+              <View style={styles.rewardsHeaderTop}>
+                <Text style={styles.rewardsTitle}>Government Rewards</Text>
+                <View style={styles.rewardsPercentageBadge}>
+                  <Text style={styles.rewardsPercentageText}>38%</Text>
+                </View>
+              </View>
+
+              {/* Unlocked Rewards List */}
+              <View style={styles.rewardsList}>
+                <View style={styles.rewardItem}>
+                  <View style={styles.rewardCheckbox}>
+                    <Ionicons name="checkmark" size={12} color="#1b4a5a" />
+                  </View>
+                  <Text style={styles.rewardItemText}>
+                    🥉 Bronze - 10% Electricity Waiver
+                  </Text>
+                </View>
+
+                <View style={styles.rewardItem}>
+                  <View style={styles.rewardCheckbox}>
+                    <Ionicons name="checkmark" size={12} color="#1b4a5a" />
+                  </View>
+                  <Text style={styles.rewardItemText}>
+                    🥈 Silver - 15% Water Tax Waiver
+                  </Text>
+                </View>
+
+                <View style={styles.rewardItem}>
+                  <View style={styles.rewardCheckbox}>
+                    <Ionicons name="checkmark" size={12} color="#1b4a5a" />
+                  </View>
+                  <Text style={styles.rewardItemText}>
+                    🥇 Gold - 25% Electricity Waiver
+                  </Text>
+                </View>
+
+                <View style={styles.rewardItem}>
+                  <View style={styles.rewardCheckbox}>
+                    <Ionicons name="checkmark" size={12} color="#1b4a5a" />
+                  </View>
+                  <Text style={styles.rewardItemText}>
+                    💎 Platinum - 30% Property Tax Rebate
+                  </Text>
+                </View>
+              </View>
+
+              {/* View All Button */}
+              <TouchableOpacity 
+                style={styles.viewAllRewardsButton}
+                onPress={() => navigation.navigate('Rewards')}
+              >
+                <Text style={styles.viewAllRewardsText}>
+                  View All Rewards
+                </Text>
+                <Ionicons name="chevron-forward" size={14} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </LinearGradient>
+      </LinearGradient>
 
       {/* Quick Actions Section */}
       <View style={styles.monitoringSection}>
@@ -1217,5 +1410,214 @@ const styles = StyleSheet.create({
     width: 2,
     height: 10,
     backgroundColor: '#040707',
+  },
+  // Progress Section Styles
+  progressSection: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 24,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  progressTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  progressSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  progressIconCircle: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressStatsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  progressStatCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  progressStatLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 8,
+  },
+  progressStatValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  progressStatChange: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  progressStatPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#84cc16',
+  },
+  progressComparison: {
+    marginBottom: 20,
+  },
+  comparisonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  comparisonLabel: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  comparisonValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  comparisonBarContainer: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  comparisonBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  achievementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  achievementIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  achievementEmoji: {
+    fontSize: 20,
+  },
+  achievementText: {
+    flex: 1,
+  },
+  achievementTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 2,
+  },
+  achievementDescription: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  governmentRewardsCard: {
+    borderRadius: 20,
+    padding: 20,
+  },
+  rewardsHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  rewardsTrophyIcon: {
+    width: 48,
+    height: 48,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  rewardsTrophyEmoji: {
+    fontSize: 24,
+  },
+  rewardsHeaderText: {
+    flex: 1,
+  },
+  rewardsHeaderTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  rewardsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1b4a5a',
+  },
+  rewardsPercentageBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  rewardsPercentageText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1b4a5a',
+  },
+  rewardsList: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  rewardItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  rewardCheckbox: {
+    width: 20,
+    height: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rewardItemText: {
+    fontSize: 13,
+    color: '#1b4a5a',
+    fontWeight: '500',
+    flex: 1,
+  },
+  viewAllRewardsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(27, 74, 90, 0.9)',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 6,
+  },
+  viewAllRewardsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });

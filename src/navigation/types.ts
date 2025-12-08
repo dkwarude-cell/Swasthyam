@@ -75,7 +75,16 @@ export type MainStackParamList = {
   Tabs: NavigatorScreenParams<MainTabsParamList>;
   
   // Oil Tracker Screens
-  OilTracker: undefined;
+  OilTracker: {
+    targetDate?: string;
+    scannedProduct?: {
+      name: string;
+      brand?: string;
+      oilContent?: string;
+      nutritionalInfo?: any;
+    };
+  };
+  BarcodeScanner: undefined;
   Notifications: undefined;
   DeviceManagement: undefined;
   DeviceDetail: {
@@ -146,6 +155,9 @@ export type MainStackParamList = {
   ProductComparison: {
     productIds?: string[];
   };
+  
+  // Rewards Screens
+  Rewards: undefined;
   
   // Profile Screens
   EditProfile: undefined;

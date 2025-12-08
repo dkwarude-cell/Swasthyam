@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Card, CardContent } from './Card';
 import { Badge } from './Badge';
 import apiService, { Group } from '../../services/api';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface MobileGroupsProps {
   language: string;
@@ -34,11 +35,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [newGroupType, setNewGroupType] = useState<'family' | 'school' | 'community' | 'other'>('family');
 
-  useEffect(() => {
-    loadGroups();
-  }, []);
-
-  const loadGroups = async () => {
+  const loadGroups = useCallback(async () => {
     try {
       setIsLoading(true);
       const [groupsRes, invitesRes] = await Promise.all([
@@ -58,7 +55,17 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadGroups();
+  }, [loadGroups]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadGroups();
+    }, [loadGroups])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);

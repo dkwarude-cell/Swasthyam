@@ -79,7 +79,7 @@ function computeMultiplier(harmScore) {
  * @returns {object} Raw kcal, multiplier, and effective kcal
  */
 function computeEffectiveCalories(grams, harmScore) {
-  const rawKcal = grams * 9.0;
+  const rawKcal = grams * 9.0 * (6.25 / 100);
   const multiplier = computeMultiplier(harmScore);
   const effectiveKcal = rawKcal * multiplier;
   

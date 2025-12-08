@@ -185,17 +185,21 @@ export function EatingHabitsScreen({ onNext, onSkip, onBack, language }: EatingH
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Dietary Preference</Text>
             <View style={styles.pickerContainer}>
+              <View style={styles.pickerIconContainer}>
+                <Ionicons name="leaf" size={20} color="#5B5B5B" style={styles.pickerIcon} />
+              </View>
               <Picker
                 selectedValue={dietType}
                 onValueChange={setDietType}
                 style={styles.picker}
+                dropdownIconColor="#07A996"
               >
                 <Picker.Item label="Select your diet type" value="" />
-                <Picker.Item label="Vegetarian" value="vegetarian" />
-                <Picker.Item label="Non-Vegetarian" value="non-vegetarian" />
-                <Picker.Item label="Vegan" value="vegan" />
-                <Picker.Item label="Eggetarian" value="eggetarian" />
-                <Picker.Item label="Jain" value="jain" />
+                <Picker.Item label="🥬 Vegetarian" value="vegetarian" />
+                <Picker.Item label="🍗 Non-Vegetarian" value="non-vegetarian" />
+                <Picker.Item label="🌱 Vegan" value="vegan" />
+                <Picker.Item label="🥚 Eggetarian" value="eggetarian" />
+                <Picker.Item label="🙏 Jain" value="jain" />
               </Picker>
             </View>
           </View>
@@ -204,19 +208,23 @@ export function EatingHabitsScreen({ onNext, onSkip, onBack, language }: EatingH
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Preferred Cooking Style</Text>
             <View style={styles.pickerContainer}>
+              <View style={styles.pickerIconContainer}>
+                <Ionicons name="restaurant" size={20} color="#5B5B5B" style={styles.pickerIcon} />
+              </View>
               <Picker
                 selectedValue={cookingStyle}
                 onValueChange={setCookingStyle}
                 style={styles.picker}
+                dropdownIconColor="#07A996"
               >
                 <Picker.Item label="Select cooking style" value="" />
-                <Picker.Item label="North Indian" value="north-indian" />
-                <Picker.Item label="South Indian" value="south-indian" />
-                <Picker.Item label="Bengali" value="bengali" />
-                <Picker.Item label="Gujarati" value="gujarati" />
-                <Picker.Item label="Punjabi" value="punjabi" />
-                <Picker.Item label="Mixed/Continental" value="mixed" />
-                <Picker.Item label="Minimal Oil Cooking" value="minimal-oil" />
+                <Picker.Item label="🍛 North Indian" value="north-indian" />
+                <Picker.Item label="🥘 South Indian" value="south-indian" />
+                <Picker.Item label="🍲 Bengali" value="bengali" />
+                <Picker.Item label="🥗 Gujarati" value="gujarati" />
+                <Picker.Item label="🧈 Punjabi" value="punjabi" />
+                <Picker.Item label="🍝 Mixed/Continental" value="mixed" />
+                <Picker.Item label="✨ Minimal Oil Cooking" value="minimal-oil" />
               </Picker>
             </View>
           </View>
@@ -410,14 +418,31 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
   },
   pickerContainer: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#E7F2F1',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#07A996',
     borderRadius: 12,
     overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#07A996',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pickerIconContainer: {
+    paddingLeft: 12,
+    paddingRight: 8,
+  },
+  pickerIcon: {
+    marginTop: 2,
   },
   picker: {
     height: 50,
+    flex: 1,
+    color: '#2D3748',
+    fontSize: 16,
   },
   footer: {
     backgroundColor: '#ffffff',

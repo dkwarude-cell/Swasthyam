@@ -7,9 +7,11 @@ import {
   StyleSheet,
   Dimensions,
   TextInput,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface MobilePartnersProps {
   language: string;
@@ -164,6 +166,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
   const [selectedSort, setSelectedSort] = useState('popular');
   const [showFortified, setShowFortified] = useState(false);
   const [compareProducts, setCompareProducts] = useState<number[]>([]);
+  const [showCompareModal, setShowCompareModal] = useState(false);
 
   const text = {
     en: {
@@ -188,6 +191,16 @@ export function MobilePartners({ language }: MobilePartnersProps) {
       compareProducts: 'Compare Products',
       addToCompare: 'Add to compare',
       pts: 'pts if purchased',
+      compare: 'Compare',
+      closeComparison: 'Close',
+      clearAll: 'Clear All',
+      selectProducts: 'Select 2-3 products to compare',
+      price: 'Price',
+      gstRate: 'GST Rate',
+      transFat: 'Trans Fat',
+      benefits: 'Benefits',
+      availability: 'Availability',
+      rewardPoints: 'Reward Points',
       aboutTitle: 'About Swasth Oil Products',
       aboutText1: 'All listed products are verified for quality standards and health parameters. Products with "Healthy Choice" badge meet SwasthTel\'s recommended criteria for heart health and low trans-fat content.',
       aboutText2: 'GST rates shown are indicative. Actual prices may vary by region and retailer. PDS availability is subject to state government schemes.',
@@ -216,6 +229,16 @@ export function MobilePartners({ language }: MobilePartnersProps) {
       compareProducts: 'उत्पादों की तुलना करें',
       addToCompare: 'तुलना में जोड़ें',
       pts: 'अंक यदि खरीदा',
+      compare: 'तुलना करें',
+      closeComparison: 'बंद करें',
+      clearAll: 'सभी हटाएं',
+      selectProducts: 'तुलना के लिए 2-3 उत्पाद चुनें',
+      price: 'कीमत',
+      gstRate: 'GST दर',
+      transFat: 'ट्रांस वसा',
+      benefits: 'लाभ',
+      availability: 'उपलब्धता',
+      rewardPoints: 'पुरस्कार अंक',
       aboutTitle: 'स्वस्थ तेल उत्पादों के बारे में',
       aboutText1: 'सूचीबद्ध सभी उत्पाद गुणवत्ता मानकों और स्वास्थ्य मापदंडों के लिए सत्यापित हैं।',
       aboutText2: 'दिखाए गए GST दरें सांकेतिक हैं। वास्तविक कीमतें क्षेत्र और खुदरा विक्रेता के अनुसार भिन्न हो सकती हैं।',
@@ -251,6 +274,21 @@ export function MobilePartners({ language }: MobilePartnersProps) {
     } else if (compareProducts.length < 3) {
       setCompareProducts([...compareProducts, id]);
     }
+  };
+
+  const handleCompare = () => {
+    if (compareProducts.length >= 2) {
+      setShowCompareModal(true);
+    }
+  };
+
+  const clearComparison = () => {
+    setCompareProducts([]);
+    setShowCompareModal(false);
+  };
+
+  const getComparedProducts = () => {
+    return oilProducts.filter(p => compareProducts.includes(p.id));
   };
 
   const handleScan = () => {
@@ -421,9 +459,14 @@ export function MobilePartners({ language }: MobilePartnersProps) {
 
           {/* Compare Products Button */}
           {compareProducts.length > 0 && (
-            <TouchableOpacity style={styles.compareButton}>
+            <TouchableOpacity 
+              style={[styles.compareButton, compareProducts.length < 2 && styles.compareButtonDisabled]}
+              onPress={handleCompare}
+              disabled={compareProducts.length < 2}
+            >
+              <Ionicons name="git-compare" size={20} color="#ffffff" />
               <Text style={styles.compareButtonText}>
-                {t.compareProducts} ({compareProducts.length})
+                {compareProducts.length < 2 ? t.selectProducts : `${t.compare} (${compareProducts.length})`}
               </Text>
             </TouchableOpacity>
           )}
@@ -521,6 +564,180 @@ export function MobilePartners({ language }: MobilePartnersProps) {
           )}
         </View>
       </ScrollView>
+
+      {/* Comparison Modal */}
+      <Modal
+        visible={showCompareModal}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowCompareModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          {/* Modal Header */}
+          <LinearGradient colors={['#1b4a5a', '#0f3a47']} style={styles.modalHeader}>
+            <View style={styles.modalHeaderContent}>
+              <View style={styles.modalHeaderLeft}>
+                <Ionicons name="git-compare" size={24} color="#ffffff" />
+                <Text style={styles.modalTitle}>{t.compareProducts}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowCompareModal(false)} style={styles.closeButton}>
+                <Ionicons name="close" size={28} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+
+          {/* Comparison Content */}
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            {/* Product Names Header */}
+            <View style={styles.comparisonRow}>
+              <View style={styles.comparisonLabel}>
+                <Text style={styles.labelText}>Product</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+                {getComparedProducts().map((product, index) => (
+                  <View key={product.id} style={[styles.productColumn, index === 0 && styles.firstColumn]}>
+                    <Text style={styles.productHeaderName} numberOfLines={2}>{product.name}</Text>
+                    <TouchableOpacity 
+                      onPress={() => toggleCompare(product.id)}
+                      style={styles.removeProductBtn}
+                    >
+                      <Ionicons name="close-circle" size={20} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Price Comparison */}
+            <View style={styles.comparisonRow}>
+              <View style={styles.comparisonLabel}>
+                <Ionicons name="cash-outline" size={18} color="#1b4a5a" />
+                <Text style={styles.labelText}>{t.price}</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+                {getComparedProducts().map((product, index) => (
+                  <View key={product.id} style={[styles.productColumn, index === 0 && styles.firstColumn]}>
+                    <Text style={styles.valueText}>₹{product.price}/{product.unit}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* GST Rate Comparison */}
+            <View style={styles.comparisonRow}>
+              <View style={styles.comparisonLabel}>
+                <Ionicons name="document-text-outline" size={18} color="#1b4a5a" />
+                <Text style={styles.labelText}>{t.gstRate}</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+                {getComparedProducts().map((product, index) => (
+                  <View key={product.id} style={[styles.productColumn, index === 0 && styles.firstColumn]}>
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{product.gst}</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Trans Fat Comparison */}
+            <View style={styles.comparisonRow}>
+              <View style={styles.comparisonLabel}>
+                <Ionicons name="water-outline" size={18} color="#1b4a5a" />
+                <Text style={styles.labelText}>{t.transFat}</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+                {getComparedProducts().map((product, index) => (
+                  <View key={product.id} style={[styles.productColumn, index === 0 && styles.firstColumn]}>
+                    <View style={[styles.badge, styles.badgeTFA]}>
+                      <Text style={styles.badgeTextTFA}>{product.tfa}</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Benefits/Badges Comparison */}
+            <View style={styles.comparisonRow}>
+              <View style={styles.comparisonLabel}>
+                <Ionicons name="checkmark-circle-outline" size={18} color="#1b4a5a" />
+                <Text style={styles.labelText}>{t.benefits}</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+                {getComparedProducts().map((product, index) => (
+                  <View key={product.id} style={[styles.productColumn, index === 0 && styles.firstColumn]}>
+                    <View style={styles.badgesList}>
+                      {product.badges.map((badge, idx) => (
+                        <View 
+                          key={idx} 
+                          style={[
+                            styles.comparisonBadge,
+                            badge === 'Fortified' && styles.badgeFortified,
+                            badge === 'Healthy Choice' && styles.badgeHealthy,
+                          ]}
+                        >
+                          <Text 
+                            style={[
+                              styles.comparisonBadgeText,
+                              badge === 'Fortified' && styles.badgeTextFortified,
+                              badge === 'Healthy Choice' && styles.badgeTextHealthy,
+                            ]}
+                          >
+                            {badge}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Availability Comparison */}
+            <View style={styles.comparisonRow}>
+              <View style={styles.comparisonLabel}>
+                <Ionicons name="location-outline" size={18} color="#1b4a5a" />
+                <Text style={styles.labelText}>{t.availability}</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+                {getComparedProducts().map((product, index) => (
+                  <View key={product.id} style={[styles.productColumn, index === 0 && styles.firstColumn]}>
+                    <Text style={styles.smallText} numberOfLines={3}>{product.availability}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Reward Points Comparison */}
+            <View style={styles.comparisonRow}>
+              <View style={styles.comparisonLabel}>
+                <Ionicons name="star-outline" size={18} color="#1b4a5a" />
+                <Text style={styles.labelText}>{t.rewardPoints}</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+                {getComparedProducts().map((product, index) => (
+                  <View key={product.id} style={[styles.productColumn, index === 0 && styles.firstColumn]}>
+                    <View style={styles.pointsBadge}>
+                      <Ionicons name="star" size={16} color="#fcaf56" />
+                      <Text style={styles.pointsValue}>+{product.points}</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </ScrollView>
+
+          {/* Modal Footer */}
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.clearButton} onPress={clearComparison}>
+              <Text style={styles.clearButtonText}>{t.clearAll}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.doneButton} onPress={() => setShowCompareModal(false)}>
+              <Text style={styles.doneButtonText}>{t.closeComparison}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -709,11 +926,17 @@ const styles = StyleSheet.create({
     color: '#040707',
   },
   compareButton: {
+    flexDirection: 'row',
     backgroundColor: '#3b82f6',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     marginBottom: 16,
+  },
+  compareButtonDisabled: {
+    backgroundColor: '#9ca3af',
   },
   compareButtonText: {
     fontSize: 16,
@@ -972,5 +1195,157 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#07A996',
+  },
+  // Comparison Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fafbfa',
+  },
+  modalHeader: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  modalHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalContent: {
+    flex: 1,
+  },
+  comparisonRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+    minHeight: 80,
+  },
+  comparisonLabel: {
+    width: 120,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    gap: 4,
+    borderRightWidth: 1,
+    borderRightColor: '#e5e7eb',
+  },
+  labelText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#040707',
+  },
+  productsScroll: {
+    flex: 1,
+  },
+  productColumn: {
+    width: 140,
+    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#e5e7eb',
+  },
+  firstColumn: {
+    borderLeftWidth: 0,
+  },
+  productHeaderName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#040707',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  removeProductBtn: {
+    marginTop: 4,
+  },
+  valueText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1b4a5a',
+    textAlign: 'center',
+  },
+  smallText: {
+    fontSize: 12,
+    color: '#5B5B5B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  badgesList: {
+    flexDirection: 'column',
+    gap: 6,
+    alignItems: 'center',
+  },
+  comparisonBadge: {
+    backgroundColor: '#dcfce7',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  comparisonBadgeText: {
+    fontSize: 11,
+    color: '#16a34a',
+    fontWeight: '500',
+  },
+  pointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#fef3c7',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  pointsValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f59e0b',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 12,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  clearButton: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#ef4444',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ef4444',
+  },
+  doneButton: {
+    flex: 1,
+    backgroundColor: '#1b4a5a',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });

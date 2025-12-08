@@ -166,16 +166,20 @@ export function BasicInfoScreen({ onNext, onSkip, onBack, language }: BasicInfoS
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Gender</Text>
             <View style={styles.pickerContainer}>
+              <View style={styles.pickerIconContainer}>
+                <Ionicons name="person" size={20} color="#5B5B5B" style={styles.pickerIcon} />
+              </View>
               <Picker
                 selectedValue={gender}
                 onValueChange={setGender}
                 style={styles.picker}
+                dropdownIconColor="#07A996"
               >
                 <Picker.Item label="Select gender" value="" />
-                <Picker.Item label="Male" value="male" />
-                <Picker.Item label="Female" value="female" />
-                <Picker.Item label="Other" value="other" />
-                <Picker.Item label="Prefer not to say" value="prefer-not-to-say" />
+                <Picker.Item label="👨 Male" value="male" />
+                <Picker.Item label="👩 Female" value="female" />
+                <Picker.Item label="🧑 Other" value="other" />
+                <Picker.Item label="🤐 Prefer not to say" value="prefer-not-to-say" />
               </Picker>
             </View>
           </View>
@@ -211,17 +215,21 @@ export function BasicInfoScreen({ onNext, onSkip, onBack, language }: BasicInfoS
             <Text style={styles.label}>Activity Level</Text>
             <Text style={styles.helperText}>How active are you on a daily basis?</Text>
             <View style={styles.pickerContainer}>
+              <View style={styles.pickerIconContainer}>
+                <Ionicons name="fitness" size={20} color="#5B5B5B" style={styles.pickerIcon} />
+              </View>
               <Picker
                 selectedValue={activityLevel}
                 onValueChange={setActivityLevel}
                 style={styles.picker}
+                dropdownIconColor="#07A996"
               >
                 <Picker.Item label="Select activity level" value="" />
-                <Picker.Item label="Sedentary (little to no exercise)" value="sedentary" />
-                <Picker.Item label="Lightly Active (1-3 days/week)" value="lightly-active" />
-                <Picker.Item label="Moderately Active (3-5 days/week)" value="moderately-active" />
-                <Picker.Item label="Very Active (6-7 days/week)" value="very-active" />
-                <Picker.Item label="Extra Active (athlete/physical job)" value="extra-active" />
+                <Picker.Item label="🛋️ Sedentary (little to no exercise)" value="sedentary" />
+                <Picker.Item label="🚶 Lightly Active (1-3 days/week)" value="lightly-active" />
+                <Picker.Item label="🏃 Moderately Active (3-5 days/week)" value="moderately-active" />
+                <Picker.Item label="💪 Very Active (6-7 days/week)" value="very-active" />
+                <Picker.Item label="🏋️ Extra Active (athlete/physical job)" value="extra-active" />
               </Picker>
             </View>
           </View>
@@ -378,14 +386,31 @@ const styles = StyleSheet.create({
     color: '#040707',
   },
   pickerContainer: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#E7F2F1',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#07A996',
     borderRadius: 12,
     overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#07A996',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pickerIconContainer: {
+    paddingLeft: 12,
+    paddingRight: 8,
+  },
+  pickerIcon: {
+    marginTop: 2,
   },
   picker: {
     height: 50,
+    flex: 1,
+    color: '#2D3748',
+    fontSize: 16,
   },
   bmiCard: {
     backgroundColor: '#ffffff',

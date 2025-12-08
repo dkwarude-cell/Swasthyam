@@ -652,10 +652,10 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
               
               {groups.length > 3 && (
                 <TouchableOpacity 
-                  style={styles.viewAllButton}
+                  style={styles.groupViewAllButton}
                   onPress={() => navigation?.navigate('Groups')}
                 >
-                  <Text style={styles.viewAllButtonText}>View All {groups.length} Groups</Text>
+                  <Text style={styles.groupViewAllButtonText}>View All {groups.length} Groups</Text>
                   <Ionicons name="arrow-forward" size={16} color="#1b4a5a" />
                 </TouchableOpacity>
               )}
@@ -732,16 +732,62 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
               </View>
             </View>
 
-            {/* Rewards */}
+            {/* Rewards - Navigate to Full Screen */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>{t.rewards}</Text>
-                <View style={styles.pointsBadge}>
-                  <Ionicons name="gift" size={16} color="#fcaf56" />
-                  <Text style={styles.pointsText}>{totalPoints} pts</Text>
-                </View>
+                <TouchableOpacity
+                  onPress={() => navigation?.navigate('Rewards')}
+                  style={styles.viewAllButton}
+                >
+                  <Text style={styles.viewAllText}>View All</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#1b4a5a" />
+                </TouchableOpacity>
               </View>
-              {rewards.map((reward) => (
+
+              {/* Rewards Preview Card */}
+              <TouchableOpacity
+                style={styles.rewardsPreviewCard}
+                onPress={() => navigation?.navigate('Rewards')}
+              >
+                <LinearGradient
+                  colors={['#1b4a5a', '#0f3a47']}
+                  style={styles.rewardsGradient}
+                >
+                  <View style={styles.rewardsPreviewHeader}>
+                    <View>
+                      <Text style={styles.rewardsPreviewTitle}>Government Rewards & Benefits</Text>
+                      <Text style={styles.rewardsPreviewSubtitle}>Unlock utility bill concessions</Text>
+                    </View>
+                    <Ionicons name="trophy" size={32} color="#fcaf56" />
+                  </View>
+
+                  <View style={styles.rewardsPreviewGrid}>
+                    <View style={styles.rewardsPreviewItem}>
+                      <Text style={styles.rewardsPreviewLabel}>Electricity</Text>
+                      <Text style={styles.rewardsPreviewValue}>Up to 40% off</Text>
+                    </View>
+                    <View style={styles.rewardsPreviewItem}>
+                      <Text style={styles.rewardsPreviewLabel}>Water Tax</Text>
+                      <Text style={styles.rewardsPreviewValue}>Up to 25% off</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.rewardsPreviewFooter}>
+                    <View style={styles.pointsBadge}>
+                      <Ionicons name="star" size={16} color="#fcaf56" />
+                      <Text style={styles.pointsText}>{totalPoints} pts</Text>
+                    </View>
+                    <View style={styles.viewRewardsButton}>
+                      <Text style={styles.viewRewardsText}>View All Rewards</Text>
+                      <Ionicons name="chevron-forward" size={16} color="#1b4a5a" />
+                    </View>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Quick Partner Rewards Preview */}
+              {rewards.slice(0, 2).map((reward) => (
                 <View key={reward.id} style={styles.rewardCard}>
                   <View style={styles.rewardInfo}>
                     <Text style={styles.rewardName}>{reward.name}</Text>
@@ -1414,7 +1460,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   tabText: {
-    fontSize: 12,
+    fontSize: 15,
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '500',
   },
@@ -1655,6 +1701,85 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#f59e0b',
     fontWeight: '600',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1b4a5a',
+  },
+  rewardsPreviewCard: {
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  rewardsGradient: {
+    padding: 20,
+  },
+  rewardsPreviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  rewardsPreviewTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  rewardsPreviewSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  rewardsPreviewGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  rewardsPreviewItem: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    padding: 12,
+    borderRadius: 12,
+  },
+  rewardsPreviewLabel: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 4,
+  },
+  rewardsPreviewValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  rewardsPreviewFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  viewRewardsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#fcaf56',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  viewRewardsText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1b4a5a',
   },
   rewardCard: {
     backgroundColor: '#ffffff',
@@ -2319,7 +2444,7 @@ const styles = StyleSheet.create({
     color: '#5B5B5B',
     marginTop: 4,
   },
-  viewAllButton: {
+  groupViewAllButton: {
     backgroundColor: '#E7F2F1',
     borderRadius: 12,
     paddingVertical: 12,
@@ -2330,7 +2455,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
   },
-  viewAllButtonText: {
+  groupViewAllButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1b4a5a',

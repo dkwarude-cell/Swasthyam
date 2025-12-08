@@ -58,29 +58,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const loadStoredAuth = async () => {
     try {
       setIsLoading(true);
+      console.log('Loading stored auth...');
       
       const storedToken = await AsyncStorage.getItem(TOKEN_KEY);
       const storedUser = await AsyncStorage.getItem(USER_KEY);
+
+      console.log('Stored token exists:', !!storedToken);
+      console.log('Stored user exists:', !!storedUser);
 
       if (storedToken && storedUser) {
         setToken(storedToken);
         apiService.setToken(storedToken);
         
         // Verify token is still valid by fetching user
-        const response = await apiService.getMe();
-        
-        if (response.success && response.user) {
-          setUser(response.user);
-          await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.user));
-        } else {
-          // Token invalid, clear storage
+        try {
+          const response = await apiService.getMe();
+          
+          if (response.success && response.user) {
+            console.log('User verified successfully');
+            setUser(response.user);
+            await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.user));
+          } else {
+            // Token invalid, clear storage
+            console.log('Token invalid, clearing storage');
+            await clearStorage();
+          }
+        } catch (apiErr) {
+          console.error('API error during auth load:', apiErr);
+          // If API fails (e.g., network error), still use stored user but flag as potentially stale
           await clearStorage();
         }
+      } else {
+        console.log('No stored auth found, user needs to login');
       }
     } catch (err) {
       console.error('Error loading stored auth:', err);
       await clearStorage();
     } finally {
+      console.log('Auth loading complete');
       setIsLoading(false);
     }
   };

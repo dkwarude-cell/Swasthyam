@@ -82,6 +82,8 @@ import { GroupDetailScreen } from '../components/native/screens/GroupDetailScree
 import { GroupDashboardScreen } from '../components/native/screens/GroupDashboardScreen';
 import { GroupManagementScreen } from '../components/native/screens/GroupManagementScreen';
 
+import { RewardsScreen } from '../components/native/screens/RewardsScreen';
+
 import { PartnerDetailScreen } from '../components/native/screens/PartnerDetailScreen';
 import { PartnerSearchScreen } from '../components/native/screens/PartnerSearchScreen';
 import { BlockchainVerificationScreen } from '../components/native/screens/BlockchainVerificationScreen';
@@ -93,6 +95,7 @@ import { GoalSettingsScreen } from '../components/native/screens/GoalSettingsScr
 import { PrivacySettingsScreen } from '../components/native/screens/PrivacySettingsScreen';
 import { HelpSupportScreen } from '../components/native/screens/HelpSupportScreen';
 import { SettingsScreen } from '../components/native/screens/SettingsScreen';
+import { BarcodeScannerScreen } from '../components/native/screens/BarcodeScannerScreen';
 
 import { SuperNani } from '../components/native/SuperNani';
 
@@ -323,6 +326,7 @@ function MainStackNavigator({ language, onLogout }: MainStackProps) {
       <MainStack.Screen name="OilTracker">
         {(props) => <MobileOilTracker {...props} language={language} />}
       </MainStack.Screen>
+      <MainStack.Screen name="BarcodeScanner" component={BarcodeScannerScreen} />
       <MainStack.Screen name="Notifications" component={NotificationsScreen} />
       <MainStack.Screen name="DeviceManagement" component={DeviceManagementScreen} />
       <MainStack.Screen 
@@ -367,6 +371,11 @@ function MainStackNavigator({ language, onLogout }: MainStackProps) {
       </MainStack.Screen>
       <MainStack.Screen name="GroupDetail">
         {(props) => <GroupDetailScreen {...props} language={language} />}
+      </MainStack.Screen>
+
+      {/* Rewards Screen */}
+      <MainStack.Screen name="Rewards">
+        {(props) => <RewardsScreen {...props} language={language} />}
       </MainStack.Screen>
 
       {/* Community Screens */}

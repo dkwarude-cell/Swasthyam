@@ -223,36 +223,44 @@ export function YourOilScreen({ onNext, onSkip, onBack, language }: YourOilScree
             />
             
             <View style={styles.pickerContainer}>
+              <View style={styles.pickerIconContainer}>
+                <Ionicons name="water" size={20} color="#5B5B5B" style={styles.pickerIcon} />
+              </View>
               <Picker
                 selectedValue={manualProduct.type}
                 onValueChange={(value) => setManualProduct(prev => ({ ...prev, type: value }))}
                 style={styles.picker}
+                dropdownIconColor="#07A996"
               >
                 <Picker.Item label="Select Oil Type" value="" />
-                <Picker.Item label="Sunflower Oil" value="sunflower" />
-                <Picker.Item label="Rice Bran Oil" value="rice-bran" />
-                <Picker.Item label="Mustard Oil" value="mustard" />
-                <Picker.Item label="Groundnut Oil" value="groundnut" />
-                <Picker.Item label="Olive Oil" value="olive" />
-                <Picker.Item label="Coconut Oil" value="coconut" />
-                <Picker.Item label="Soybean Oil" value="soybean" />
-                <Picker.Item label="Blended Oil" value="blended" />
-                <Picker.Item label="Other" value="other" />
+                <Picker.Item label="🌻 Sunflower Oil" value="sunflower" />
+                <Picker.Item label="🌾 Rice Bran Oil" value="rice-bran" />
+                <Picker.Item label="🌱 Mustard Oil" value="mustard" />
+                <Picker.Item label="🥜 Groundnut Oil" value="groundnut" />
+                <Picker.Item label="🫒 Olive Oil" value="olive" />
+                <Picker.Item label="🥥 Coconut Oil" value="coconut" />
+                <Picker.Item label="🫘 Soybean Oil" value="soybean" />
+                <Picker.Item label="🔀 Blended Oil" value="blended" />
+                <Picker.Item label="📦 Other" value="other" />
               </Picker>
             </View>
             
             <View style={styles.pickerContainer}>
+              <View style={styles.pickerIconContainer}>
+                <Ionicons name="resize" size={20} color="#5B5B5B" style={styles.pickerIcon} />
+              </View>
               <Picker
                 selectedValue={manualProduct.volume}
                 onValueChange={(value) => setManualProduct(prev => ({ ...prev, volume: value }))}
                 style={styles.picker}
+                dropdownIconColor="#07A996"
               >
                 <Picker.Item label="Select Volume" value="" />
-                <Picker.Item label="1 Liter" value="1L" />
-                <Picker.Item label="2 Liters" value="2L" />
-                <Picker.Item label="5 Liters" value="5L" />
-                <Picker.Item label="15 Liters" value="15L" />
-                <Picker.Item label="Other" value="other" />
+                <Picker.Item label="📏 1 Liter" value="1L" />
+                <Picker.Item label="📏 2 Liters" value="2L" />
+                <Picker.Item label="📏 5 Liters" value="5L" />
+                <Picker.Item label="📏 15 Liters" value="15L" />
+                <Picker.Item label="📦 Other" value="other" />
               </Picker>
             </View>
 
@@ -488,14 +496,31 @@ const styles = StyleSheet.create({
     color: '#040707',
   },
   pickerContainer: {
-    backgroundColor: '#fafbfa',
-    borderWidth: 1,
-    borderColor: '#E7F2F1',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#07A996',
     borderRadius: 12,
     overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#07A996',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pickerIconContainer: {
+    paddingLeft: 12,
+    paddingRight: 8,
+  },
+  pickerIcon: {
+    marginTop: 2,
   },
   picker: {
     height: 50,
+    flex: 1,
+    color: '#2D3748',
+    fontSize: 16,
   },
   formButtons: {
     flexDirection: 'row',
