@@ -7,9 +7,13 @@ if (Platform.OS !== 'web') {
   FileSystem = require('expo-file-system/legacy');
 }
 
+// Gemini API Configuration
+const GEMINI_API_KEY = 'AIzaSyD9WVGxf1lZNM4M-bEEhPFXhdrqIHk4MZs';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+
 // Add console logging for debugging
 console.log('[BarcodeService] Module loaded successfully');
-console.log('[BarcodeService] OpenCV/pyzbar integration enabled');
+console.log('[BarcodeService] Hybrid mode: OpenCV/pyzbar + Gemini AI');
 console.log('[BarcodeService] Platform:', Platform.OS);
 
 interface BarcodeResponse {
@@ -74,7 +78,120 @@ interface SearchResponse {
 }
 
 /**
- * Scan barcode from image using OpenCV/pyzbar backend
+ * Get product details from Gemini AI using barcode and image
+ */
+const getProductDetailsFromGemini = async (barcode: string, base64Image: string): Promise<any> => {
+  const prompt = `You are a Product Information Expert. I have scanned a barcode: ${barcode}
+
+Analyze this product image and the barcode to provide detailed product information.
+
+Return ONLY a valid JSON object (no markdown, no code blocks) with this exact structure:
+{
+  "product_name": "full product name",
+  "brand": "brand/manufacturer name",
+  "quantity": "e.g., 1L, 500ml, 1kg",
+  "product_type": "e.g., Sunflower Oil, Mustard Oil, Refined Oil, Cooking Oil",
+  "categories": "e.g., Edible Oil, Cooking Oil, Food Product",
+  "ingredients": "list of ingredients if visible or known",
+  "nutritional_info": {
+    "energy_kcal": number or null,
+    "fat": number or null,
+    "saturated_fat": number or null,
+    "trans_fat": number or null,
+    "polyunsaturated_fat": number or null,
+    "carbohydrates": number or null,
+    "proteins": number or null,
+    "sodium": number or null
+  },
+  "sfa": "saturated fat value with unit (e.g., '12g') or null",
+  "tfa": "trans fat value with unit (e.g., '0g') or null", 
+  "pfa": "polyunsaturated fat value with unit (e.g., '25g') or null",
+  "health_tips": ["tip1", "tip2", "tip3"],
+  "is_food_product": true
+}
+
+RULES:
+- Use the barcode ${barcode} to identify the product if possible
+- Extract nutritional values per 100g/100ml
+- If you recognize the product from the barcode or image, provide accurate info
+- For Indian products, include common brand knowledge
+- If unsure, make reasonable estimates based on product type
+- Return ONLY the JSON object, no extra text`;
+
+  try {
+    console.log('[BarcodeService] -------- GEMINI API CALL --------');
+    console.log('[BarcodeService] Barcode:', barcode);
+    console.log('[BarcodeService] Image data size:', base64Image.length, 'chars');
+    
+    const url = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: base64Image,
+              },
+            },
+          ],
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 32,
+          topP: 1,
+          maxOutputTokens: 1024,
+        },
+      }),
+    });
+
+    console.log('[BarcodeService] Gemini response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('[BarcodeService] Gemini API error:', errorData.substring(0, 300));
+      throw new Error(`Gemini API error ${response.status}`);
+    }
+
+    const data = await response.json();
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!generatedText) {
+      throw new Error('No response from Gemini AI');
+    }
+    
+    console.log('[BarcodeService] Gemini response preview:', generatedText.substring(0, 200));
+
+    // Parse JSON from response
+    let jsonText = generatedText.trim();
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/```\n?/g, '');
+    }
+    const firstBrace = jsonText.indexOf('{');
+    const lastBrace = jsonText.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonText = jsonText.slice(firstBrace, lastBrace + 1);
+    }
+
+    const parsedData = JSON.parse(jsonText);
+    console.log('[BarcodeService] Gemini parsed successfully');
+    return parsedData;
+  } catch (error: any) {
+    console.error('[BarcodeService] Gemini analysis error:', error.message);
+    throw error;
+  }
+};
+
+/**
+ * Scan barcode from image using OpenCV/pyzbar backend, then get details from Gemini
  */
 export const scanBarcodeImage = async (imageUri: string): Promise<BarcodeResponse> => {
   try {
@@ -125,78 +242,193 @@ export const scanBarcodeImage = async (imageUri: string): Promise<BarcodeRespons
     }
     
     console.log('[BarcodeService] Image read successfully, total size:', base64Image.length);
-    console.log('[BarcodeService] Sending to backend OpenCV/pyzbar...');
     
-    // Send to backend for barcode detection
+    // Step 1: Use OpenCV/pyzbar backend to detect barcode
+    console.log('[BarcodeService] Step 1: Sending to backend OpenCV/pyzbar for barcode detection...');
+    
     const scanUrl = `${API_BASE_URL}${API_ENDPOINTS.BARCODE.SCAN_BASE64}`;
     console.log('[BarcodeService] Backend URL:', scanUrl);
     
-    const response = await fetch(scanUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        image: base64Image,
-        filename: 'barcode_scan.jpg',
-      }),
-    });
+    let detectedBarcode: string | null = null;
     
-    console.log('[BarcodeService] Backend response status:', response.status, response.statusText);
+    try {
+      const response = await fetch(scanUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: base64Image,
+          filename: 'barcode_scan.jpg',
+        }),
+      });
+      
+      console.log('[BarcodeService] Backend response status:', response.status, response.statusText);
+      
+      const result = await response.json();
+      console.log('[BarcodeService] Backend response:', JSON.stringify(result).substring(0, 300));
+      
+      if (result.success && result.data?.barcode) {
+        detectedBarcode = result.data.barcode;
+        console.log('[BarcodeService] ✓ Barcode detected by OpenCV:', detectedBarcode);
+      } else {
+        console.warn('[BarcodeService] OpenCV could not detect barcode:', result.error || result.message);
+      }
+    } catch (backendError: any) {
+      console.warn('[BarcodeService] Backend OpenCV error:', backendError.message);
+    }
     
-    const result = await response.json();
-    console.log('[BarcodeService] Backend response:', JSON.stringify(result).substring(0, 300));
-    
-    if (!result.success) {
-      console.warn('[BarcodeService] Barcode detection failed:', result.error || result.message);
+    // If no barcode detected, return error
+    if (!detectedBarcode) {
       return {
         success: false,
-        error: result.error || result.message || 'Could not detect barcode',
-        message: result.message,
-        tips: result.tips || [
+        error: 'Could not detect barcode in the image',
+        message: 'No barcode found. Please ensure the barcode is clearly visible.',
+        tips: [
           'Ensure the barcode is clearly visible and well-lit',
           'Hold the camera steady and in focus',
           'Position the barcode in the center of the frame',
           'Try different angles if detection fails',
           'Use manual entry as an alternative',
         ],
-        suggestion: result.suggestion,
+        suggestion: 'manual_entry',
       };
     }
     
-    console.log('[BarcodeService] Barcode detected successfully');
-    console.log('[BarcodeService] ========== SCAN COMPLETE ==========');
+    // Step 2: Use Gemini AI to get detailed product information
+    console.log('[BarcodeService] Step 2: Sending to Gemini AI for product details...');
     
-    return {
-      success: true,
-      data: {
-        barcode: result.data.barcode,
-        product_name: result.data.product_name || 'Unknown Product',
-        brand: result.data.brand || 'Unknown Brand',
-        quantity: result.data.quantity || 'N/A',
-        categories: result.data.categories || 'Food Product',
-        ingredients_text: result.data.ingredients_text || 'Not specified',
-        image_url: result.data.image_url || imageUri,
-        nutritional_info: result.data.nutritional_info || null,
-        oil_content: result.data.oil_content || 'Unknown',
-        additives: result.data.additives || [],
-        nutriscore_grade: result.data.nutriscore_grade || null,
-        nova_group: result.data.nova_group || null,
-        labels: result.data.labels || 'N/A',
-        fatty_acids: result.data.fatty_acids || {
-          sfa: null,
-          tfa: null,
-          pfa: null,
-          is_food_product: true,
+    // Extract raw base64 data (remove data URL prefix)
+    const rawBase64 = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+    
+    try {
+      const geminiData = await getProductDetailsFromGemini(detectedBarcode, rawBase64);
+      console.log('[BarcodeService] ✓ Gemini AI provided product details');
+      
+      // Combine OpenCV barcode detection with Gemini product info
+      return {
+        success: true,
+        data: {
+          barcode: detectedBarcode,
+          product_name: geminiData.product_name || 'Unknown Product',
+          brand: geminiData.brand || 'Unknown Brand',
+          quantity: geminiData.quantity || 'N/A',
+          categories: geminiData.categories || geminiData.product_type || 'Food Product',
+          ingredients_text: geminiData.ingredients || 'Not specified',
+          image_url: imageUri,
+          nutritional_info: geminiData.nutritional_info ? {
+            energy_kcal: geminiData.nutritional_info.energy_kcal || null,
+            fat: geminiData.nutritional_info.fat || null,
+            saturated_fat: geminiData.nutritional_info.saturated_fat || null,
+            trans_fat: geminiData.nutritional_info.trans_fat || null,
+            cholesterol: null,
+            carbohydrates: geminiData.nutritional_info.carbohydrates || null,
+            sugars: null,
+            fiber: null,
+            proteins: geminiData.nutritional_info.proteins || null,
+            salt: null,
+            sodium: geminiData.nutritional_info.sodium || null,
+            unit: '100g',
+            polyunsaturated_fat: geminiData.nutritional_info.polyunsaturated_fat || null,
+          } : null,
+          oil_content: geminiData.nutritional_info?.fat ? `${geminiData.nutritional_info.fat}g` : 'Unknown',
+          additives: [],
+          nutriscore_grade: null,
+          nova_group: null,
+          labels: geminiData.product_type || 'Edible Product',
+          fatty_acids: {
+            sfa: geminiData.sfa || null,
+            tfa: geminiData.tfa || null,
+            pfa: geminiData.pfa || null,
+            is_food_product: geminiData.is_food_product !== false,
+          },
         },
-      },
-      message: result.message || 'Product scanned successfully',
-      tips: result.tips || [
-        'Track your oil consumption daily',
-        'Choose healthier oil alternatives',
-        'Monitor your SwasthaIndex score',
-      ],
-    };
+        message: 'Product scanned successfully with AI analysis',
+        tips: geminiData.health_tips || [
+          'Track your oil consumption daily',
+          'Choose healthier oil alternatives',
+          'Monitor your SwasthaIndex score',
+        ],
+      };
+    } catch (geminiError: any) {
+      console.warn('[BarcodeService] Gemini AI failed, falling back to OpenFoodFacts:', geminiError.message);
+      
+      // Fallback: Try OpenFoodFacts with the detected barcode
+      try {
+        const offResponse = await fetch(`https://world.openfoodfacts.org/api/v0/product/${detectedBarcode}.json`);
+        const offData = await offResponse.json();
+        
+        if (offData.status === 1 && offData.product) {
+          const product = offData.product;
+          console.log('[BarcodeService] ✓ Product found in OpenFoodFacts:', product.product_name);
+          
+          return {
+            success: true,
+            data: {
+              barcode: detectedBarcode,
+              product_name: product.product_name || 'Unknown Product',
+              brand: product.brands || 'Unknown Brand',
+              quantity: product.quantity || 'N/A',
+              categories: product.categories || 'Food Product',
+              ingredients_text: product.ingredients_text || 'Not specified',
+              image_url: product.image_url || imageUri,
+              nutritional_info: {
+                energy_kcal: product.nutriments?.['energy-kcal_100g'] || null,
+                fat: product.nutriments?.fat_100g || null,
+                saturated_fat: product.nutriments?.['saturated-fat_100g'] || null,
+                trans_fat: product.nutriments?.['trans-fat_100g'] || null,
+                cholesterol: product.nutriments?.cholesterol_100g || null,
+                carbohydrates: product.nutriments?.carbohydrates_100g || null,
+                sugars: product.nutriments?.sugars_100g || null,
+                fiber: product.nutriments?.fiber_100g || null,
+                proteins: product.nutriments?.proteins_100g || null,
+                salt: product.nutriments?.salt_100g || null,
+                sodium: product.nutriments?.sodium_100g || null,
+                unit: '100g',
+              },
+              oil_content: product.nutriments?.fat_100g ? `${product.nutriments.fat_100g}g` : 'Unknown',
+              additives: product.additives_tags || [],
+              nutriscore_grade: product.nutriscore_grade || null,
+              nova_group: product.nova_group || null,
+              labels: product.labels || 'N/A',
+            },
+            message: 'Product found in OpenFoodFacts database',
+            tips: [
+              'Check the nutritional information',
+              'Track your daily oil consumption',
+              'Compare with healthier alternatives',
+            ],
+          };
+        }
+      } catch (offError) {
+        console.warn('[BarcodeService] OpenFoodFacts fallback also failed');
+      }
+      
+      // Return basic info with just the barcode
+      return {
+        success: true,
+        data: {
+          barcode: detectedBarcode,
+          product_name: 'Unknown Product',
+          brand: 'Unknown Brand',
+          quantity: 'N/A',
+          categories: 'Food Product',
+          ingredients_text: 'Not specified',
+          image_url: imageUri,
+          nutritional_info: null,
+          oil_content: 'Unknown',
+          additives: [],
+          nutriscore_grade: null,
+          nova_group: null,
+          labels: 'N/A',
+        },
+        message: `Barcode ${detectedBarcode} detected. Product details not available.`,
+        tips: [
+          'Enter product details manually for accurate tracking',
+          'Check the product packaging for nutritional info',
+        ],
+      };
+    }
     
   } catch (error: any) {
     console.error('[BarcodeService] Barcode scan failed:', error);
