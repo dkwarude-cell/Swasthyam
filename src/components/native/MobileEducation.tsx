@@ -12,9 +12,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Card, CardContent } from './Card';
 import { Badge } from './Badge';
 import { Progress } from './Progress';
+import { t } from '../../i18n';
 
 interface MobileEducationProps {
-  language: string;
 }
 
 const courses = [

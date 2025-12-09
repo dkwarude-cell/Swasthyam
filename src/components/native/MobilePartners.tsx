@@ -12,9 +12,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import i18n from '../../i18n';
+import en from '../../i18n/locales/en';
+import hi from '../../i18n/locales/hi';
+import mr from '../../i18n/locales/mr';
+import or from '../../i18n/locales/or';
 
 interface MobilePartnersProps {
-  language: string;
+  language?: string;
 }
 
 const { width } = Dimensions.get('window');
@@ -28,7 +33,18 @@ const certifiedPartners = [
     verified: true,
     healthScore: 92,
     address: 'Mumbai, Maharashtra',
-    speciality: 'Traditional Indian Cuisine'
+    speciality: 'Traditional Indian Cuisine',
+    certificationId: 'SWTH-MH-2024-0847',
+    certifiedSince: 'March 2024',
+    phone: '+91 22 2654 8976',
+    timing: '11:00 AM - 11:00 PM',
+    lowOilDishes: [
+      { name: 'Steamed Idli Sambar', calories: 180, oilUsed: '2ml', oilType: 'Sesame Oil', tags: ['Low Fat', 'High Fiber'] },
+      { name: 'Tandoori Roti', calories: 120, oilUsed: '0ml', oilType: 'None', tags: ['No Oil', 'Whole Grain'] },
+      { name: 'Dal Tadka (Lite)', calories: 220, oilUsed: '5ml', oilType: 'Rice Bran Oil', tags: ['Protein Rich', 'Low Oil'] },
+      { name: 'Grilled Paneer Tikka', calories: 195, oilUsed: '4ml', oilType: 'Mustard Oil', tags: ['High Protein', 'Low Fat'] },
+      { name: 'Mixed Vegetable Raita', calories: 85, oilUsed: '0ml', oilType: 'None', tags: ['Probiotic', 'No Oil'] },
+    ]
   },
   {
     id: 2,
@@ -38,7 +54,17 @@ const certifiedPartners = [
     verified: true,
     healthScore: 88,
     address: 'Pune, Maharashtra',
-    speciality: 'Healthy Fast Food'
+    speciality: 'Healthy Fast Food',
+    certificationId: 'SWTH-MH-2024-1023',
+    certifiedSince: 'May 2024',
+    phone: '+91 20 4567 8901',
+    timing: '8:00 AM - 10:00 PM',
+    lowOilDishes: [
+      { name: 'Quinoa Salad Bowl', calories: 165, oilUsed: '3ml', oilType: 'Olive Oil', tags: ['Superfood', 'Low Cal'] },
+      { name: 'Grilled Chicken Wrap', calories: 280, oilUsed: '5ml', oilType: 'Sunflower Oil', tags: ['High Protein', 'Low Fat'] },
+      { name: 'Steamed Momos', calories: 190, oilUsed: '2ml', oilType: 'Sesame Oil', tags: ['Steamed', 'Low Oil'] },
+      { name: 'Fresh Fruit Smoothie', calories: 120, oilUsed: '0ml', oilType: 'None', tags: ['No Oil', 'Vitamin Rich'] },
+    ]
   },
   {
     id: 3,
@@ -48,7 +74,17 @@ const certifiedPartners = [
     verified: true,
     healthScore: 90,
     address: 'Goa',
-    speciality: 'Seafood & Continental'
+    speciality: 'Seafood & Continental',
+    certificationId: 'SWTH-GA-2024-0156',
+    certifiedSince: 'January 2024',
+    phone: '+91 832 245 6789',
+    timing: '12:00 PM - 11:30 PM',
+    lowOilDishes: [
+      { name: 'Grilled Fish Fillet', calories: 210, oilUsed: '4ml', oilType: 'Olive Oil', tags: ['Omega-3', 'Low Fat'] },
+      { name: 'Steamed Prawns', calories: 145, oilUsed: '2ml', oilType: 'Butter (Clarified)', tags: ['High Protein', 'Steamed'] },
+      { name: 'Garden Fresh Salad', calories: 95, oilUsed: '3ml', oilType: 'Extra Virgin Olive Oil', tags: ['Raw', 'Fiber Rich'] },
+      { name: 'Baked Vegetables', calories: 130, oilUsed: '3ml', oilType: 'Olive Oil', tags: ['Baked', 'Low Oil'] },
+    ]
   },
   {
     id: 4,
@@ -58,7 +94,17 @@ const certifiedPartners = [
     verified: true,
     healthScore: 86,
     address: 'Delhi NCR',
-    speciality: 'North Indian Cuisine'
+    speciality: 'North Indian Cuisine',
+    certificationId: 'SWTH-DL-2024-0492',
+    certifiedSince: 'April 2024',
+    phone: '+91 11 4567 8901',
+    timing: '11:30 AM - 10:30 PM',
+    lowOilDishes: [
+      { name: 'Roti & Dal Fry', calories: 250, oilUsed: '5ml', oilType: 'Ghee', tags: ['Balanced', 'Traditional'] },
+      { name: 'Tandoori Chicken', calories: 230, oilUsed: '4ml', oilType: 'Mustard Oil', tags: ['High Protein', 'Grilled'] },
+      { name: 'Jeera Rice', calories: 180, oilUsed: '3ml', oilType: 'Ghee', tags: ['Light', 'Low Oil'] },
+      { name: 'Baingan Bharta (Lite)', calories: 165, oilUsed: '5ml', oilType: 'Mustard Oil', tags: ['Smoky', 'Low Fat'] },
+    ]
   },
   {
     id: 5,
@@ -68,7 +114,17 @@ const certifiedPartners = [
     verified: true,
     healthScore: 84,
     address: 'Bangalore, Karnataka',
-    speciality: 'Quick Bites & Beverages'
+    speciality: 'Quick Bites & Beverages',
+    certificationId: 'SWTH-KA-2024-0678',
+    certifiedSince: 'June 2024',
+    phone: '+91 80 2345 6789',
+    timing: '7:00 AM - 9:00 PM',
+    lowOilDishes: [
+      { name: 'Oats Upma', calories: 150, oilUsed: '3ml', oilType: 'Coconut Oil', tags: ['Fiber Rich', 'Low Oil'] },
+      { name: 'Sprouts Chaat', calories: 120, oilUsed: '2ml', oilType: 'Groundnut Oil', tags: ['Raw', 'Protein'] },
+      { name: 'Multigrain Sandwich', calories: 210, oilUsed: '4ml', oilType: 'Olive Oil', tags: ['Whole Grain', 'Balanced'] },
+      { name: 'Green Detox Juice', calories: 80, oilUsed: '0ml', oilType: 'None', tags: ['No Oil', 'Detox'] },
+    ]
   },
   {
     id: 6,
@@ -78,7 +134,18 @@ const certifiedPartners = [
     verified: true,
     healthScore: 94,
     address: 'Hyderabad, Telangana',
-    speciality: 'Mughlai & Tandoori'
+    speciality: 'Mughlai & Tandoori',
+    certificationId: 'SWTH-TS-2024-0234',
+    certifiedSince: 'February 2024',
+    phone: '+91 40 6789 0123',
+    timing: '12:00 PM - 11:00 PM',
+    lowOilDishes: [
+      { name: 'Tandoori Platter', calories: 320, oilUsed: '5ml', oilType: 'Mustard Oil', tags: ['Grilled', 'High Protein'] },
+      { name: 'Roomali Roti', calories: 90, oilUsed: '1ml', oilType: 'Ghee', tags: ['Ultra Low Oil', 'Light'] },
+      { name: 'Seekh Kebab', calories: 185, oilUsed: '3ml', oilType: 'Refined Oil', tags: ['Grilled', 'Lean Meat'] },
+      { name: 'Mint Raita', calories: 65, oilUsed: '0ml', oilType: 'None', tags: ['No Oil', 'Cooling'] },
+      { name: 'Chicken Tikka', calories: 195, oilUsed: '4ml', oilType: 'Mustard Oil', tags: ['High Protein', 'Low Fat'] },
+    ]
   }
 ];
 
@@ -157,8 +224,13 @@ const oilProducts = [
   }
 ];
 
-export function MobilePartners({ language }: MobilePartnersProps) {
+export function MobilePartners({ language = 'en' }: MobilePartnersProps) {
   const navigation = useNavigation<any>();
+  
+  // Get translations based on current language
+  const locales: Record<string, typeof en> = { en, hi, mr, or };
+  const t = locales[language] || en;
+  
   const [selectedTab, setSelectedTab] = useState('certified');
   const [productSearch, setProductSearch] = useState('');
   const [restaurantSearch, setRestaurantSearch] = useState('');
@@ -166,88 +238,16 @@ export function MobilePartners({ language }: MobilePartnersProps) {
   const [selectedSort, setSelectedSort] = useState('popular');
   const [showFortified, setShowFortified] = useState(false);
   const [compareProducts, setCompareProducts] = useState<number[]>([]);
+  const [showRestaurantModal, setShowRestaurantModal] = useState(false);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<typeof certifiedPartners[0] | null>(null);
+
+  const handleRestaurantPress = (partner: typeof certifiedPartners[0]) => {
+    setSelectedRestaurant(partner);
+    setShowRestaurantModal(true);
+  };
   const [showCompareModal, setShowCompareModal] = useState(false);
 
-  const text = {
-    en: {
-      partnersTitle: 'SwasthTel Partners',
-      partnersSubtitle: 'Certified partners & products',
-      certifiedTab: 'Swasth Tel Certified',
-      productsTab: 'Swasth Oil Products',
-      title: 'Swasth Oil Products',
-      subtitle: 'Verified healthy cooking oils',
-      restaurantSearchPlaceholder: 'Search restaurants, cafes...',
-      verified: 'Verified',
-      healthScore: 'Health Score',
-      scanProduct: 'Scan Oil Product',
-      enterManual: 'Enter SKU / Manual',
-      scanInfo: 'Scan any edible oil bottle to view GST, health score and better alternatives.',
-      howWorks: 'How scanning works',
-      searchPlaceholder: 'Search oil, brand, or SKU',
-      sort: 'Sort:',
-      popular: 'Popular',
-      priceLow: 'Price: Low to High',
-      priceHigh: 'Price: High to Low',
-      compareProducts: 'Compare Products',
-      addToCompare: 'Add to compare',
-      pts: 'pts if purchased',
-      compare: 'Compare',
-      closeComparison: 'Close',
-      clearAll: 'Clear All',
-      selectProducts: 'Select 2-3 products to compare',
-      price: 'Price',
-      gstRate: 'GST Rate',
-      transFat: 'Trans Fat',
-      benefits: 'Benefits',
-      availability: 'Availability',
-      rewardPoints: 'Reward Points',
-      aboutTitle: 'About Swasth Oil Products',
-      aboutText1: 'All listed products are verified for quality standards and health parameters. Products with "Healthy Choice" badge meet SwasthTel\'s recommended criteria for heart health and low trans-fat content.',
-      aboutText2: 'GST rates shown are indicative. Actual prices may vary by region and retailer. PDS availability is subject to state government schemes.',
-      fortified: 'Fortified',
-      healthyChoice: 'Healthy Choice',
-    },
-    hi: {
-      partnersTitle: 'स्वास्थ्यटेल साझेदार',
-      partnersSubtitle: 'प्रमाणित साझेदार और उत्पाद',
-      certifiedTab: 'स्वास्थ्य टेल प्रमाणित',
-      productsTab: 'स्वस्थ तेल उत्पाद',
-      title: 'स्वस्थ तेल उत्पाद',
-      subtitle: 'सत्यापित स्वस्थ खाना पकाने के तेल',
-      restaurantSearchPlaceholder: 'रेस्तरां, कैफे खोजें...',
-      verified: 'सत्यापित',
-      healthScore: 'स्वास्थ्य स्कोर',
-      scanProduct: 'तेल उत्पाद स्कैन करें',
-      enterManual: 'SKU दर्ज करें / मैनुअल',
-      scanInfo: 'GST, स्वास्थ्य स्कोर और बेहतर विकल्प देखने के लिए किसी भी खाद्य तेल की बोतल को स्कैन करें।',
-      howWorks: 'स्कैनिंग कैसे काम करती है',
-      searchPlaceholder: 'तेल, ब्रांड या SKU खोजें',
-      sort: 'क्रमबद्ध करें:',
-      popular: 'लोकप्रिय',
-      priceLow: 'कीमत: कम से ज्यादा',
-      priceHigh: 'कीमत: ज्यादा से कम',
-      compareProducts: 'उत्पादों की तुलना करें',
-      addToCompare: 'तुलना में जोड़ें',
-      pts: 'अंक यदि खरीदा',
-      compare: 'तुलना करें',
-      closeComparison: 'बंद करें',
-      clearAll: 'सभी हटाएं',
-      selectProducts: 'तुलना के लिए 2-3 उत्पाद चुनें',
-      price: 'कीमत',
-      gstRate: 'GST दर',
-      transFat: 'ट्रांस वसा',
-      benefits: 'लाभ',
-      availability: 'उपलब्धता',
-      rewardPoints: 'पुरस्कार अंक',
-      aboutTitle: 'स्वस्थ तेल उत्पादों के बारे में',
-      aboutText1: 'सूचीबद्ध सभी उत्पाद गुणवत्ता मानकों और स्वास्थ्य मापदंडों के लिए सत्यापित हैं।',
-      aboutText2: 'दिखाए गए GST दरें सांकेतिक हैं। वास्तविक कीमतें क्षेत्र और खुदरा विक्रेता के अनुसार भिन्न हो सकती हैं।',
-      fortified: 'फोर्टिफाइड',
-      healthyChoice: 'स्वस्थ विकल्प',
-    },
-  };
 
-  const t = text[language as keyof typeof text] || text.en;
 
   const filteredPartners = certifiedPartners.filter(partner => {
     const matchesSearch = partner.name.toLowerCase().includes(restaurantSearch.toLowerCase()) ||
@@ -305,8 +305,8 @@ export function MobilePartners({ language }: MobilePartnersProps) {
               <Ionicons name="storefront" size={24} color="#ffffff" />
             </View>
             <View>
-              <Text style={styles.headerTitle}>{t.partnersTitle}</Text>
-              <Text style={styles.headerSubtitle}>{t.partnersSubtitle}</Text>
+              <Text style={styles.headerTitle}>{t.partners.partnersTitle}</Text>
+              <Text style={styles.headerSubtitle}>{t.partners.partnersSubtitle}</Text>
             </View>
           </View>
 
@@ -317,7 +317,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
               onPress={() => setSelectedTab('certified')}
             >
               <Text style={[styles.tabText, selectedTab === 'certified' && styles.tabTextActive]}>
-                {t.certifiedTab}
+                {t.partners.certifiedTab}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -325,7 +325,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
               onPress={() => setSelectedTab('products')}
             >
               <Text style={[styles.tabText, selectedTab === 'products' && styles.tabTextActive]}>
-                {t.productsTab}
+                {t.partners.productsTab}
               </Text>
             </TouchableOpacity>
           </View>
@@ -350,7 +350,11 @@ export function MobilePartners({ language }: MobilePartnersProps) {
               {/* Certified Partners List */}
               <View style={styles.partnersList}>
                 {filteredPartners.map((partner) => (
-                  <TouchableOpacity key={partner.id} style={styles.partnerCard}>
+                  <TouchableOpacity 
+                    key={partner.id} 
+                    style={styles.partnerCard}
+                    onPress={() => handleRestaurantPress(partner)}
+                  >
                     <View style={styles.partnerCardHeader}>
                       <View style={styles.partnerIconContainer}>
                         <Ionicons name="restaurant" size={28} color="#1b4a5a" />
@@ -374,7 +378,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
                         <Text style={styles.partnerStatText}>{partner.rating}</Text>
                       </View>
                       <View style={styles.partnerHealthScore}>
-                        <Text style={styles.healthScoreLabel}>{t.healthScore}: </Text>
+                        <Text style={styles.healthScoreLabel}>{t.partners.healthScore}: </Text>
                         <Text style={styles.healthScoreValue}>{partner.healthScore}</Text>
                       </View>
                     </View>
@@ -389,17 +393,17 @@ export function MobilePartners({ language }: MobilePartnersProps) {
           <View style={styles.scanSection}>
             <TouchableOpacity style={styles.scanButton} onPress={handleScan}>
               <Ionicons name="camera" size={20} color="#1b4a5a" />
-              <Text style={styles.scanButtonText}>{t.scanProduct}</Text>
+              <Text style={styles.scanButtonText}>{t.partners.scanProduct}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.manualButton}>
-              <Text style={styles.manualButtonText}>{t.enterManual}</Text>
+              <Text style={styles.manualButtonText}>{t.partners.enterManual}</Text>
             </TouchableOpacity>
 
             {/* Info Box */}
             <View style={styles.infoBox}>
-              <Text style={styles.infoText}>{t.scanInfo}</Text>
+              <Text style={styles.infoText}>{t.partners.scanInfo}</Text>
               <TouchableOpacity>
-                <Text style={styles.infoLink}>{t.howWorks}</Text>
+                <Text style={styles.infoLink}>{t.partners.howWorks}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -408,7 +412,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color="#5B5B5B" style={styles.searchIcon} />
             <TextInput
-              placeholder={t.searchPlaceholder}
+              placeholder={t.partners.searchPlaceholder}
               value={productSearch}
               onChangeText={setProductSearch}
               style={styles.searchInput}
@@ -441,17 +445,17 @@ export function MobilePartners({ language }: MobilePartnersProps) {
                 style={[styles.chip, showFortified && styles.chipActive]}
                 onPress={() => setShowFortified(!showFortified)}
               >
-                <Text style={[styles.chipText, showFortified && styles.chipTextActive]}>{t.fortified}</Text>
+                <Text style={[styles.chipText, showFortified && styles.chipTextActive]}>{t.partners.fortified}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
 
           {/* Sort Dropdown */}
           <View style={styles.sortContainer}>
-            <Text style={styles.sortLabel}>{t.sort}</Text>
+            <Text style={styles.sortLabel}>{t.partners.sort}</Text>
             <TouchableOpacity style={styles.sortButton}>
               <Text style={styles.sortText}>
-                {selectedSort === 'popular' ? t.popular : selectedSort === 'price-low' ? t.priceLow : t.priceHigh}
+                {selectedSort === 'popular' ? t.partners.popular : selectedSort === 'price-low' ? t.partners.priceLow : t.partners.priceHigh}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#5B5B5B" />
             </TouchableOpacity>
@@ -466,7 +470,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
             >
               <Ionicons name="git-compare" size={20} color="#ffffff" />
               <Text style={styles.compareButtonText}>
-                {compareProducts.length < 2 ? t.selectProducts : `${t.compare} (${compareProducts.length})`}
+                {compareProducts.length < 2 ? t.partners.selectProducts : `${t.partners.compare} (${compareProducts.length})`}
               </Text>
             </TouchableOpacity>
           )}
@@ -505,7 +509,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
                       </View>
                       {product.badges.includes('Fortified') && (
                         <View style={[styles.badge, styles.badgeFortified]}>
-                          <Text style={styles.badgeTextFortified}>{t.fortified}</Text>
+                          <Text style={styles.badgeTextFortified}>{t.partners.fortified}</Text>
                         </View>
                       )}
                       <View style={[styles.badge, styles.badgeTFA]}>
@@ -513,7 +517,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
                       </View>
                       {product.badges.includes('Healthy Choice') && (
                         <View style={[styles.badge, styles.badgeHealthy]}>
-                          <Text style={styles.badgeTextHealthy}>{t.healthyChoice}</Text>
+                          <Text style={styles.badgeTextHealthy}>{t.partners.healthyChoice}</Text>
                         </View>
                       )}
                     </View>
@@ -529,7 +533,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
                     {/* Points */}
                     <View style={styles.pointsRow}>
                       <Ionicons name="star" size={14} color="#fcaf56" />
-                      <Text style={styles.pointsText}>+{product.points} {t.pts}</Text>
+                      <Text style={styles.pointsText}>+{product.points} {t.partners.pts}</Text>
                     </View>
 
                     {/* Compare Checkbox */}
@@ -543,7 +547,7 @@ export function MobilePartners({ language }: MobilePartnersProps) {
                           <Ionicons name="checkmark" size={14} color="#ffffff" />
                         )}
                       </View>
-                      <Text style={styles.compareText}>{t.addToCompare}</Text>
+                      <Text style={styles.compareText}>{t.partners.addToCompare}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -555,15 +559,192 @@ export function MobilePartners({ language }: MobilePartnersProps) {
           <View style={styles.aboutSection}>
             <View style={styles.aboutHeader}>
               <Ionicons name="information-circle" size={20} color="#1b4a5a" />
-              <Text style={styles.aboutTitle}>{t.aboutTitle}</Text>
+              <Text style={styles.aboutTitle}>{t.partners.aboutTitle}</Text>
             </View>
-            <Text style={styles.aboutText}>{t.aboutText1}</Text>
-            <Text style={styles.aboutText}>{t.aboutText2}</Text>
+            <Text style={styles.aboutText}>{t.partners.aboutText1}</Text>
+            <Text style={styles.aboutText}>{t.partners.aboutText2}</Text>
           </View>
             </>
           )}
         </View>
       </ScrollView>
+
+      {/* Restaurant Detail Modal */}
+      <Modal
+        visible={showRestaurantModal}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowRestaurantModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          {/* Modal Header */}
+          <LinearGradient colors={['#1b4a5a', '#0f3a47']} style={styles.modalHeader}>
+            <View style={styles.modalHeaderContent}>
+              <View style={styles.modalHeaderLeft}>
+                <Ionicons name="restaurant" size={24} color="#ffffff" />
+                <Text style={styles.modalTitle} numberOfLines={1}>
+                  {selectedRestaurant?.name}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowRestaurantModal(false)} style={styles.closeButton}>
+                <Ionicons name="close" size={28} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            {selectedRestaurant && (
+              <>
+                {/* Certification Banner */}
+                <View style={styles.certificationBanner}>
+                  <View style={styles.certBadge}>
+                    <Ionicons name="shield-checkmark" size={32} color="#07A996" />
+                  </View>
+                  <View style={styles.certInfo}>
+                    <Text style={styles.certTitle}>Swasthyam Certified</Text>
+                    <Text style={styles.certId}>ID: {selectedRestaurant.certificationId}</Text>
+                    <Text style={styles.certSince}>Since {selectedRestaurant.certifiedSince}</Text>
+                  </View>
+                  <View style={styles.healthBadge}>
+                    <Text style={styles.healthBadgeScore}>{selectedRestaurant.healthScore}</Text>
+                    <Text style={styles.healthBadgeLabel}>Health Score</Text>
+                  </View>
+                </View>
+
+                {/* Restaurant Details */}
+                <View style={styles.restaurantDetails}>
+                  <Text style={styles.sectionTitle}>Restaurant Details</Text>
+                  
+                  <View style={styles.detailRow}>
+                    <Ionicons name="restaurant-outline" size={20} color="#1b4a5a" />
+                    <View style={styles.detailContent}>
+                      <Text style={styles.detailLabel}>Category</Text>
+                      <Text style={styles.detailValue}>{selectedRestaurant.category} • {selectedRestaurant.speciality}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.detailRow}>
+                    <Ionicons name="location-outline" size={20} color="#1b4a5a" />
+                    <View style={styles.detailContent}>
+                      <Text style={styles.detailLabel}>Address</Text>
+                      <Text style={styles.detailValue}>{selectedRestaurant.address}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.detailRow}>
+                    <Ionicons name="call-outline" size={20} color="#1b4a5a" />
+                    <View style={styles.detailContent}>
+                      <Text style={styles.detailLabel}>Phone</Text>
+                      <Text style={styles.detailValue}>{selectedRestaurant.phone}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.detailRow}>
+                    <Ionicons name="time-outline" size={20} color="#1b4a5a" />
+                    <View style={styles.detailContent}>
+                      <Text style={styles.detailLabel}>Timing</Text>
+                      <Text style={styles.detailValue}>{selectedRestaurant.timing}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.detailRow}>
+                    <Ionicons name="star" size={20} color="#fcaf56" />
+                    <View style={styles.detailContent}>
+                      <Text style={styles.detailLabel}>Rating</Text>
+                      <Text style={styles.detailValue}>{selectedRestaurant.rating} / 5.0</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Low Oil Dishes Section */}
+                <View style={styles.lowOilSection}>
+                  <View style={styles.lowOilHeader}>
+                    <View style={styles.lowOilTitleRow}>
+                      <Ionicons name="leaf" size={22} color="#16a34a" />
+                      <Text style={styles.lowOilTitle}>Low Oil Dishes</Text>
+                    </View>
+                    <View style={styles.lowOilBadge}>
+                      <Text style={styles.lowOilBadgeText}>{selectedRestaurant.lowOilDishes.length} items</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.lowOilSubtitle}>Healthy options with minimal oil usage</Text>
+
+                  {selectedRestaurant.lowOilDishes.map((dish, index) => (
+                    <View key={index} style={styles.dishCard}>
+                      <View style={styles.dishHeader}>
+                        <Text style={styles.dishName}>{dish.name}</Text>
+                        <View style={styles.dishOilBadge}>
+                          <Ionicons name="water" size={12} color="#1b4a5a" />
+                          <Text style={styles.dishOilText}>{dish.oilUsed}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.dishDetails}>
+                        <View style={styles.dishCalories}>
+                          <Ionicons name="flame-outline" size={14} color="#f59e0b" />
+                          <Text style={styles.dishCaloriesText}>{dish.calories} cal</Text>
+                        </View>
+                        {dish.oilType && dish.oilType !== 'None' && (
+                          <View style={styles.oilTypeBadge}>
+                            <Ionicons name="leaf-outline" size={12} color="#059669" />
+                            <Text style={styles.oilTypeText}>{dish.oilType}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.dishTags}>
+                        {dish.tags.map((tag, tagIndex) => (
+                          <View 
+                            key={tagIndex} 
+                            style={[
+                              styles.dishTag,
+                              tag.includes('No Oil') && styles.dishTagGreen,
+                              tag.includes('Low') && styles.dishTagBlue,
+                              tag.includes('High Protein') && styles.dishTagOrange,
+                            ]}
+                          >
+                            <Text style={[
+                              styles.dishTagText,
+                              tag.includes('No Oil') && styles.dishTagTextGreen,
+                              tag.includes('Low') && styles.dishTagTextBlue,
+                              tag.includes('High Protein') && styles.dishTagTextOrange,
+                            ]}>
+                              {tag}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Certification Info */}
+                <View style={styles.certInfoSection}>
+                  <View style={styles.certInfoHeader}>
+                    <Ionicons name="information-circle" size={20} color="#1b4a5a" />
+                    <Text style={styles.certInfoTitle}>About Swasthyam Certification</Text>
+                  </View>
+                  <Text style={styles.certInfoText}>
+                    Swasthyam Certified restaurants meet strict guidelines for oil usage, 
+                    offering dishes with reduced oil content while maintaining authentic taste. 
+                    All certified partners are regularly audited to ensure compliance.
+                  </Text>
+                </View>
+              </>
+            )}
+          </ScrollView>
+
+          {/* Modal Footer */}
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.callButton}>
+              <Ionicons name="call" size={20} color="#1b4a5a" />
+              <Text style={styles.callButtonText}>Call</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.directionsButton}>
+              <Ionicons name="navigate" size={20} color="#ffffff" />
+              <Text style={styles.directionsButtonText}>Directions</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Comparison Modal */}
       <Modal
@@ -1344,6 +1525,292 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   doneButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  // Restaurant Detail Modal Styles
+  certificationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  certBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#dcfce7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  certInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  certTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#166534',
+  },
+  certId: {
+    fontSize: 13,
+    color: '#15803d',
+    marginTop: 2,
+    fontFamily: 'monospace',
+  },
+  certSince: {
+    fontSize: 12,
+    color: '#22c55e',
+    marginTop: 2,
+  },
+  healthBadge: {
+    backgroundColor: '#16a34a',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  healthBadgeScore: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  healthBadgeLabel: {
+    fontSize: 9,
+    color: '#dcfce7',
+    textTransform: 'uppercase',
+  },
+  restaurantDetails: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 16,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  detailContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  detailValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#040707',
+    marginTop: 2,
+  },
+  lowOilSection: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  lowOilHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  lowOilTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  lowOilTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#040707',
+  },
+  lowOilBadge: {
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  lowOilBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#16a34a',
+  },
+  lowOilSubtitle: {
+    fontSize: 13,
+    color: '#5B5B5B',
+    marginBottom: 16,
+  },
+  dishCard: {
+    backgroundColor: '#fafbfa',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  dishHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dishName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#040707',
+    flex: 1,
+  },
+  dishOilBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E7F2F1',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  dishOilText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1b4a5a',
+  },
+  dishDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dishCalories: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dishCaloriesText: {
+    fontSize: 13,
+    color: '#5B5B5B',
+  },
+  oilTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  oilTypeText: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  dishTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  dishTag: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  dishTagGreen: {
+    backgroundColor: '#dcfce7',
+  },
+  dishTagBlue: {
+    backgroundColor: '#dbeafe',
+  },
+  dishTagOrange: {
+    backgroundColor: '#fef3c7',
+  },
+  dishTagText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#5B5B5B',
+  },
+  dishTagTextGreen: {
+    color: '#16a34a',
+  },
+  dishTagTextBlue: {
+    color: '#3b82f6',
+  },
+  dishTagTextOrange: {
+    color: '#f59e0b',
+  },
+  certInfoSection: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  certInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  certInfoTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1b4a5a',
+  },
+  certInfoText: {
+    fontSize: 13,
+    color: '#64748b',
+    lineHeight: 20,
+  },
+  callButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#E7F2F1',
+    borderRadius: 12,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#1b4a5a',
+  },
+  callButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1b4a5a',
+  },
+  directionsButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1b4a5a',
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  directionsButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',

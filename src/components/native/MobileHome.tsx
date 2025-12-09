@@ -21,14 +21,15 @@ import { Progress } from './Progress';
 import Svg, { Path, Circle, Line, Text as SvgText, G, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import apiService from '../../services/api';
+import { t } from '../../i18n';
 
 interface MobileHomeProps {
-  language: string;
+  language?: string;
 }
 
 const { width } = Dimensions.get('window');
 
-export function MobileHome({ language }: MobileHomeProps) {
+export function MobileHome({ language = 'en' }: MobileHomeProps) {
   const navigation = useNavigation<any>();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [weekOffset, setWeekOffset] = useState(0);
@@ -75,11 +76,20 @@ export function MobileHome({ language }: MobileHomeProps) {
     const diff = -day;
     startOfWeek.setDate(base.getDate() + diff);
 
+    // Map language codes to locale strings
+    const localeMap: Record<string, string> = {
+      en: 'en-US',
+      hi: 'hi-IN',
+      mr: 'mr-IN',
+      or: 'or-IN',
+    };
+    const locale = localeMap[language] || 'en-US';
+
     return Array.from({ length: 7 }).map((_, i) => {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
       return {
-        day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        day: d.toLocaleDateString(locale, { weekday: 'short' }),
         date: d.getDate(),
         fullDate: d,
       };
@@ -99,6 +109,12 @@ export function MobileHome({ language }: MobileHomeProps) {
   const [weeklyData, setWeeklyData] = useState<Array<{ date: string; calories: number }>>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDayCalories, setSelectedDayCalories] = useState(0);
+  
+  // Progress tracking state
+  const [totalOilSaved, setTotalOilSaved] = useState(0);
+  const [avgDailyReduction, setAvgDailyReduction] = useState(0);
+  const [beforeAvg, setBeforeAvg] = useState(0);
+  const [currentAvg, setCurrentAvg] = useState(0);
 
   // Calculate consumption percentage and determine mascot state
   // Check if selected day exceeded limit
@@ -121,7 +137,9 @@ export function MobileHome({ language }: MobileHomeProps) {
       const statusRes = await apiService.getUserOilStatus(dateOnly);
       if (statusRes.success && statusRes.data) {
         setDailyLimit(statusRes.data.goalMl || 40);
-        setDailyLimitCal(Math.round(statusRes.data.goalKcal || 360));
+        // Use old formula for limit: goalMl * 9
+        const limitCal = Math.round((statusRes.data.goalMl || 40) * 9);
+        setDailyLimitCal(limitCal);
       }
       
       // Fetch today's consumption
@@ -172,13 +190,55 @@ export function MobileHome({ language }: MobileHomeProps) {
     }
   };
 
+  const fetch30DayProgress = async () => {
+    try {
+      const today = new Date();
+      let total30Days = 0;
+      let total15DaysAgo = 0;
+      let totalRecent15Days = 0;
+      
+      // Fetch last 30 days data
+      for (let i = 0; i < 30; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        const res = await apiService.getTodayOilConsumption(dateStr);
+        const ml = res.success && res.data ? res.data.dailyTotal : 0;
+        
+        total30Days += ml;
+        
+        // First 15 days (15-30 days ago)
+        if (i >= 15) {
+          total15DaysAgo += ml;
+        }
+        // Recent 15 days (0-15 days ago)
+        if (i < 15) {
+          totalRecent15Days += ml;
+        }
+      }
+      
+      const avg15DaysAgo = total15DaysAgo / 15;
+      const avgRecent15Days = totalRecent15Days / 15;
+      const saved = total15DaysAgo - totalRecent15Days;
+      const dailyReduction = avg15DaysAgo - avgRecent15Days;
+      
+      setTotalOilSaved(Math.round(saved));
+      setAvgDailyReduction(Math.round(dailyReduction));
+      setBeforeAvg(Math.round(avg15DaysAgo));
+      setCurrentAvg(Math.round(avgRecent15Days));
+    } catch (e) {
+      console.log('Failed to load 30-day progress', e);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     // Clear data first to force re-render
     setWeeklyData([]);
     setDailyConsumption(0);
     // Then fetch new data
-    await Promise.all([fetchDaily(), fetchWeeklyData()]);
+    await Promise.all([fetchDaily(), fetchWeeklyData(), fetch30DayProgress()]);
     setRefreshing(false);
   };
 
@@ -189,6 +249,7 @@ export function MobileHome({ language }: MobileHomeProps) {
   // Fetch weekly consumption data (Sunday to Saturday)
   useEffect(() => {
     fetchWeeklyData();
+    fetch30DayProgress();
   }, []);
 
   // Chart data points for daily oil consumption
@@ -201,74 +262,7 @@ export function MobileHome({ language }: MobileHomeProps) {
     { time: '6pm', value: 1 },
   ];
 
-  const text = {
-    en: {
-      welcome: 'Welcome',
-      today: 'Today',
-      todaysOilUsage: "Oil Calories",
-      oilConsumption: 'Oil Consumption',
-      dailyOilConsumption: 'Weekly Oil Consumption',
-      dailyLimit: 'Daily Limit',
-      healthRisk: 'Health Risk Level',
-      healthRiskLevel: 'Health Risk Level',
-      lowRisk: 'Low Risk',
-      scanFood: 'Scan Food',
-      oilMonitoring: 'Oil Monitoring',
-      logOil: 'Log Oil',
-      trackYourUsage: 'Track your usage',
-      oilScan: 'Oil Scan',
-      scanMealOrProduct: 'Scan meal or product',
-      nationalCampaign: 'National Campaign',
-      viewAll: 'View All',
-      official: 'Official',
-      quickActions: 'Quick Actions',
-      oilTracker: 'Oil Tracker',
-      recipes: 'Recipes',
-      challenges: 'Challenges',
-      education: 'Education',
-      savesOil: 'Saves oil',
-      servings: 'servings',
-      learningModules: 'Learning Modules',
-      healthNutrition: 'Health & nutrition',
-      dalTadkaInsight: "Your 'Dal Tadka' used 20% less oil!",
-      greatJobKeepUp: 'Great job! Keep up the healthy cooking',
-      aiInsight: 'AI INSIGHT',
-    },
-    hi: {
-      welcome: 'स्वागत है',
-      today: 'आज',
-      todaysOilUsage: 'आज का तेल उपयोग',
-      oilConsumption: 'तेल की खपत',
-      dailyOilConsumption: 'दैनिक तेल की खपत',
-      dailyLimit: 'दैनिक सीमा',
-      healthRisk: 'स्वास्थ्य जोखिम स्तर',
-      healthRiskLevel: 'स्वास्थ्य जोखिम स्तर',
-      lowRisk: 'कम जोखिम',
-      scanFood: 'भोजन स्कैन करें',
-      oilMonitoring: 'तेल निगरानी',
-      logOil: 'तेल लॉग करें',
-      trackYourUsage: 'अपना उपयोग ट्रैक करें',
-      oilScan: 'तेल स्कैन',
-      scanMealOrProduct: 'भोजन या उत्पाद स्कैन करें',
-      nationalCampaign: 'राष्ट्रीय अभियान',
-      viewAll: 'सभी देखें',
-      official: 'आधिकारिक',
-      quickActions: 'त्वरित कार्रवाई',
-      oilTracker: 'तेल ट्रैकर',
-      recipes: 'व्यंजन',
-      challenges: 'चुनौतियां',
-      education: 'शिक्षा',
-      savesOil: 'तेल बचाता है',
-      servings: 'सर्विंग्स',
-      learningModules: 'सीखने के मॉड्यूल',
-      healthNutrition: 'स्वास्थ्य और पोषण',
-      dalTadkaInsight: "आपके 'दाल तड़का' में 20% कम तेल था!",
-      greatJobKeepUp: 'बढ़िया काम! स्वस्थ खाना बनाते रहें',
-      aiInsight: 'AI इनसाइट',
-    },
-  };
 
-  const t = text[language as keyof typeof text] || text.en;
 
   const handleScanFood = () => {
     navigation.navigate('BarcodeScanner');
@@ -296,7 +290,7 @@ export function MobileHome({ language }: MobileHomeProps) {
       >
       {/* Daily Oil Consumption Chart Section */}
       <View style={styles.chartSection}>
-        <Text style={styles.chartTitle}>{t.dailyOilConsumption}</Text>
+        <Text style={styles.chartTitle}>{t('home.weeklyOilConsumption')}</Text>
         
         <View style={styles.chartContainer}>
           {/* Chart */}
@@ -470,7 +464,7 @@ export function MobileHome({ language }: MobileHomeProps) {
         {/* Info Card with Calendar */}
         <View style={styles.infoCard}>
           <View style={styles.infoLeft}>
-            <Text style={styles.infoText}>{t.savesOil} • 8 {t.servings}</Text>
+            <Text style={styles.infoText}>{t('home.savesOil')} • 8 {t('home.servings')}</Text>
           </View>
           <View style={styles.infoRight}>
             <TouchableOpacity onPress={() => setWeekOffset(prev => prev - 1)}>
@@ -529,11 +523,11 @@ export function MobileHome({ language }: MobileHomeProps) {
       <View style={styles.usageCardWrapper}>
         <View style={styles.usageCard}>
           <View style={styles.usageHeader}>
-            <Text style={styles.usageTitle}>{t.todaysOilUsage}</Text>
-            <Text style={styles.usageValue}>{Math.round(dailyConsumption * 9)} / {dailyLimitCal} cal</Text>
+            <Text style={styles.usageTitle}>{t('home.todaysOilUsage')}</Text>
+            <Text style={styles.usageValue}>{Math.round(dailyConsumption * 9 * (6.25 / 100))} / {dailyLimitCal} cal</Text>
           </View>
           <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBarFill, { width: `${(dailyConsumption / dailyLimit) * 100}%` }]} />
+            <View style={[styles.progressBarFill, { width: `${Math.min((Math.round(dailyConsumption * 9 * (6.25 / 100)) / dailyLimitCal) * 100, 100)}%` }]} />
           </View>
         </View>
         
@@ -551,7 +545,7 @@ export function MobileHome({ language }: MobileHomeProps) {
 
       {/* Health Risk Level Card */}
       <View style={styles.riskCard}>
-        <Text style={styles.riskTitle}>{t.healthRiskLevel}</Text>
+        <Text style={styles.riskTitle}>{t('home.healthRiskLevel')}</Text>
         <View style={styles.riskProgressContainer}>
           <LinearGradient
             colors={['#7ed321','#7ed321', '#65ad18ff','#f5a623', '#ff6b6b']}
@@ -575,8 +569,8 @@ export function MobileHome({ language }: MobileHomeProps) {
       >
         <View style={styles.progressHeader}>
           <View>
-            <Text style={styles.progressTitle}>Your Progress</Text>
-            <Text style={styles.progressSubtitle}>Last 30 days</Text>
+            <Text style={styles.progressTitle}>{t('home.yourProgress')}</Text>
+            <Text style={styles.progressSubtitle}>{t('home.last30Days')}</Text>
           </View>
           <View style={styles.progressIconCircle}>
             <Ionicons name="water" size={24} color="#ffffff" />
@@ -586,20 +580,20 @@ export function MobileHome({ language }: MobileHomeProps) {
         {/* Progress Stats Grid */}
         <View style={styles.progressStatsGrid}>
           <View style={styles.progressStatCard}>
-            <Text style={styles.progressStatLabel}>Total Oil Saved</Text>
-            <Text style={styles.progressStatValue}>420ml</Text>
+            <Text style={styles.progressStatLabel}>{t('home.totalOilSaved')}</Text>
+            <Text style={styles.progressStatValue}>{totalOilSaved}ml</Text>
             <View style={styles.progressStatChange}>
-              <Ionicons name="arrow-up" size={14} color="#84cc16" />
-              <Text style={styles.progressStatPercentage}>18%</Text>
+              <Ionicons name={totalOilSaved > 0 ? "arrow-up" : "arrow-down"} size={14} color={totalOilSaved > 0 ? "#84cc16" : "#ef4444"} />
+              <Text style={styles.progressStatPercentage}>{beforeAvg > 0 ? Math.abs(Math.round((totalOilSaved / (beforeAvg * 15)) * 100)) : 0}%</Text>
             </View>
           </View>
 
           <View style={styles.progressStatCard}>
-            <Text style={styles.progressStatLabel}>Daily Reduction</Text>
-            <Text style={styles.progressStatValue}>14ml</Text>
+            <Text style={styles.progressStatLabel}>{t('home.dailyReduction')}</Text>
+            <Text style={styles.progressStatValue}>{avgDailyReduction}ml</Text>
             <View style={styles.progressStatChange}>
-              <Ionicons name="arrow-up" size={14} color="#84cc16" />
-              <Text style={styles.progressStatPercentage}>12%</Text>
+              <Ionicons name={avgDailyReduction > 0 ? "arrow-up" : "arrow-down"} size={14} color={avgDailyReduction > 0 ? "#84cc16" : "#ef4444"} />
+              <Text style={styles.progressStatPercentage}>{beforeAvg > 0 ? Math.abs(Math.round((avgDailyReduction / beforeAvg) * 100)) : 0}%</Text>
             </View>
           </View>
         </View>
@@ -607,31 +601,33 @@ export function MobileHome({ language }: MobileHomeProps) {
         {/* Comparison Bars */}
         <View style={styles.progressComparison}>
           <View style={styles.comparisonRow}>
-            <Text style={styles.comparisonLabel}>Before (30 days ago)</Text>
-            <Text style={styles.comparisonValue}>78ml/day</Text>
+            <Text style={styles.comparisonLabel}>{t('home.before15to30Days')}</Text>
+            <Text style={styles.comparisonValue}>{beforeAvg}ml/day</Text>
           </View>
           <View style={styles.comparisonBarContainer}>
             <View style={[styles.comparisonBar, { width: '100%', backgroundColor: '#ef4444' }]} />
           </View>
 
           <View style={[styles.comparisonRow, { marginTop: 12 }]}>
-            <Text style={styles.comparisonLabel}>Now (Today)</Text>
-            <Text style={styles.comparisonValue}>48ml/day</Text>
+            <Text style={styles.comparisonLabel}>{t('home.nowLast15Days')}</Text>
+            <Text style={styles.comparisonValue}>{currentAvg}ml/day</Text>
           </View>
           <View style={styles.comparisonBarContainer}>
-            <View style={[styles.comparisonBar, { width: '61.5%', backgroundColor: '#84cc16' }]} />
+            <View style={[styles.comparisonBar, { width: `${beforeAvg > 0 ? (currentAvg / beforeAvg) * 100 : 0}%`, backgroundColor: currentAvg <= beforeAvg ? '#84cc16' : '#ef4444' }]} />
           </View>
         </View>
 
         {/* Achievement Badge */}
         <View style={styles.achievementBadge}>
           <View style={styles.achievementIcon}>
-            <Text style={styles.achievementEmoji}>🎯</Text>
+            <Text style={styles.achievementEmoji}>{avgDailyReduction > 0 ? '🎯' : '💪'}</Text>
           </View>
           <View style={styles.achievementText}>
-            <Text style={styles.achievementTitle}>Great Progress!</Text>
+            <Text style={styles.achievementTitle}>{avgDailyReduction > 0 ? t('home.greatProgress') : t('home.keepGoing')}</Text>
             <Text style={styles.achievementDescription}>
-              You're using 38% less oil daily
+              {avgDailyReduction > 0 
+                ? t('home.usingLessOil', { percent: beforeAvg > 0 ? Math.abs(Math.round((avgDailyReduction / beforeAvg) * 100)) : 0 })
+                : t('home.trackConsumptionProgress')}
             </Text>
           </View>
         </View>
@@ -649,7 +645,7 @@ export function MobileHome({ language }: MobileHomeProps) {
             </View>
             <View style={styles.rewardsHeaderText}>
               <View style={styles.rewardsHeaderTop}>
-                <Text style={styles.rewardsTitle}>Government Rewards</Text>
+                <Text style={styles.rewardsTitle}>{t('home.governmentRewards')}</Text>
                 <View style={styles.rewardsPercentageBadge}>
                   <Text style={styles.rewardsPercentageText}>38%</Text>
                 </View>
@@ -712,7 +708,7 @@ export function MobileHome({ language }: MobileHomeProps) {
       {/* Quick Actions Section */}
       <View style={styles.monitoringSection}>
         <View style={styles.monitoringHeader}>
-          <Text style={styles.monitoringTitle}>{t.quickActions}</Text>
+          <Text style={styles.monitoringTitle}>{t('home.quickActions')}</Text>
           <View style={styles.monitoringIcons}>
             <TouchableOpacity>
               <Ionicons name="shuffle" size={20} color="#1b4a5a" />
@@ -730,8 +726,8 @@ export function MobileHome({ language }: MobileHomeProps) {
             <View style={styles.monitoringIconContainer}>
               <Ionicons name="add" size={32} color="#ffffff" />
             </View>
-            <Text style={styles.monitoringCardTitle}>{t.logOil}</Text>
-            <Text style={styles.monitoringCardSubtitle}>{t.trackYourUsage}</Text>
+            <Text style={styles.monitoringCardTitle}>{t('home.logOil')}</Text>
+            <Text style={styles.monitoringCardSubtitle}>{t('home.trackYourUsage')}</Text>
           </TouchableOpacity>
           
           {/* Oil Scan Card */}
@@ -739,21 +735,24 @@ export function MobileHome({ language }: MobileHomeProps) {
             <View style={[styles.monitoringIconContainer, styles.cameraIconContainer]}>
               <Ionicons name="camera" size={28} color="#07A996" />
             </View>
-            <Text style={styles.monitoringCardTitle}>{t.oilScan}</Text>
-            <Text style={styles.monitoringCardSubtitle}>{t.scanMealOrProduct}</Text>
+            <Text style={styles.monitoringCardTitle}>{t('home.oilScan')}</Text>
+            <Text style={styles.monitoringCardSubtitle}>{t('home.scanMealOrProduct')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Second Row - Learning Modules and AI Insight */}
         <View style={styles.monitoringCards}>
           {/* Learning Modules Card */}
-          <TouchableOpacity style={styles.learningCardWrapper}>
+          <TouchableOpacity 
+            style={styles.learningCardWrapper}
+            onPress={() => navigation.navigate('EducationHub')}
+          >
             <View style={styles.learningCard}>
               <View style={[styles.monitoringIconContainer, styles.learningIconContainer]}>
                 <Ionicons name="book" size={28} color="#ffffff" />
               </View>
-              <Text style={styles.monitoringCardTitle}>{t.learningModules}</Text>
-              <Text style={styles.monitoringCardSubtitle}>{t.healthNutrition}</Text>
+              <Text style={styles.monitoringCardTitle}>{t('home.learningModules')}</Text>
+              <Text style={styles.monitoringCardSubtitle}>{t('home.healthNutrition')}</Text>
             </View>
           </TouchableOpacity>
           
@@ -766,12 +765,12 @@ export function MobileHome({ language }: MobileHomeProps) {
               style={styles.aiInsightCard}
             >
               <View style={styles.aiInsightBadge}>
-                <Text style={styles.aiInsightBadgeText}>{t.aiInsight}</Text>
+                <Text style={styles.aiInsightBadgeText}>{t('home.aiInsight')}</Text>
               </View>
               <View style={[styles.monitoringIconContainer, styles.aiInsightIconContainer]}>
                 <Ionicons name="sparkles" size={24} color="#ffffff" />
               </View>
-              <Text style={styles.aiInsightTitle}>{t.dalTadkaInsight}</Text>
+              <Text style={styles.aiInsightTitle}>{t('home.dalTadkaInsight')}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -780,9 +779,9 @@ export function MobileHome({ language }: MobileHomeProps) {
       {/* National Campaign */}
       <View style={styles.campaignSection}>
         <View style={styles.campaignHeader}>
-          <Text style={styles.campaignTitle}>{t.nationalCampaign}</Text>
+          <Text style={styles.campaignTitle}>{t('home.nationalCampaign')}</Text>
           <TouchableOpacity style={styles.viewAllButton}>
-            <Text style={styles.viewAllText}>{t.viewAll}</Text>
+            <Text style={styles.viewAllText}>{t('home.viewAll')}</Text>
             <Ionicons name="chevron-forward" size={16} color="#07A996" />
           </TouchableOpacity>
         </View>
@@ -801,7 +800,7 @@ export function MobileHome({ language }: MobileHomeProps) {
             />
             <View style={styles.campaignOverlay}>
               <View style={styles.officialBadge}>
-                <Text style={styles.officialText}>{t.official}</Text>
+                <Text style={styles.officialText}>{t('home.official')}</Text>
               </View>
               <View style={styles.campaignContent}>
                 <Text style={styles.campaignCardTitle}>Mann ki Baat</Text>
@@ -819,7 +818,7 @@ export function MobileHome({ language }: MobileHomeProps) {
             />
             <View style={styles.campaignOverlay}>
               <View style={styles.officialBadge}>
-                <Text style={styles.officialText}>{t.official}</Text>
+                <Text style={styles.officialText}>{t('home.official')}</Text>
               </View>
               <View style={styles.campaignContent}>
                 <Text style={styles.campaignCardTitle}>Cutting Edge</Text>
@@ -837,7 +836,7 @@ export function MobileHome({ language }: MobileHomeProps) {
             />
             <View style={styles.campaignOverlay}>
               <View style={styles.officialBadge}>
-                <Text style={styles.officialText}>{t.official}</Text>
+                <Text style={styles.officialText}>{t('home.official')}</Text>
               </View>
               <View style={styles.campaignContent}>
                 <Text style={styles.campaignCardTitle}>Health India</Text>

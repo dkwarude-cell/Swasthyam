@@ -17,9 +17,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { calculateSwasthaIndex } from '../../utils/swasthaIndex';
 import apiService from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import LanguageSelector from './LanguageSelector';
+import { t } from '../../i18n';
 
 interface MobileProfileProps {
-  language: string;
   onLogout?: () => void;
   navigation?: any;
 }
@@ -152,7 +153,7 @@ const medicalReports = [
   }
 ];
 
-export function MobileProfile({ language, onLogout, navigation }: MobileProfileProps) {
+export function MobileProfile({ onLogout, navigation }: MobileProfileProps) {
   const [activeTab, setActiveTab] = useState<'profile' | 'myoil' | 'healthreports' | 'settings'>('profile');
   const [showAddMember, setShowAddMember] = useState(false);
   const [showUploadReport, setShowUploadReport] = useState(false);
@@ -184,203 +185,6 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
   const totalPoints = 3450;
   const userName = user?.name || user?.email || "User";
   const userInitials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || "U";
-
-  const text = {
-    en: {
-      myProfile: 'My Profile',
-      myOil: 'My Oil',
-      healthReports: 'My Health',
-      settings: 'Settings',
-      personalInfo: 'Personal Information',
-      householdDetails: 'Household Details',
-      familyConsumption: 'Family Oil Consumption',
-      familyMembers: 'Family Members',
-      verification: 'Verification & Trust',
-      achievementsCPS: 'Achievements & CPS Score',
-      rewards: 'Rewards',
-      settingsTitle: 'Settings',
-      helpSupport: 'Help & Support',
-      logout: 'Logout',
-      currentOil: 'Current Oil in Use',
-      nutritionalProfile: 'Nutritional Profile',
-      nutritionFacts: 'Nutrition Facts (per 100ml)',
-      certifications: 'Certifications & Standards',
-      productBadges: 'Product Badges',
-      changeOil: 'Change/Update Current Oil',
-      healthReportsTitle: 'Your Health Reports',
-      uploadNew: 'Upload New Report',
-      latestReport: 'Latest Report Analysis',
-      allReports: 'All Reports',
-      healthTrends: 'Health Progress Trends',
-      edit: 'Edit',
-      addMember: 'Add Member',
-      phone: 'Phone',
-      email: 'Email',
-      dateOfBirth: 'Date of Birth',
-      address: 'Address',
-      familySize: 'Family Size',
-      members: 'members',
-      avgConsumption: 'Avg. Daily Oil Consumption',
-      verified: 'Verified',
-      aadhaarVerified: 'Aadhaar Verified',
-      phoneVerified: 'Phone Verified',
-      healthScoreLabel: 'Health Score',
-      remaining: 'Remaining',
-      daysLeft: 'Days Left',
-      avgDailyUse: 'Avg. Daily Use',
-      purchased: 'Purchased',
-      viewDetails: 'View Details',
-      redeemReward: 'Redeem',
-      notEnough: 'Not Enough Points',
-      notifications: 'Notifications',
-      privacy: 'Privacy Settings',
-      language: 'Language',
-      units: 'Units Preference',
-      contactSupport: 'Contact Support',
-      faq: 'FAQ',
-      reportBug: 'Report a Bug',
-      uploadReport: 'Upload Report',
-      analyzed: 'Analyzed',
-      pending: 'Pending',
-      account: 'Account',
-      editProfile: 'Edit Profile',
-      updatePersonalInfo: 'Update your personal information',
-      managePrivacy: 'Manage your privacy preferences',
-      changePassword: 'Change Password',
-      updatePassword: 'Update your password',
-      preferences: 'Preferences',
-      pushNotifications: 'Push Notifications',
-      dailyReminders: 'Receive daily reminders and updates',
-      darkMode: 'Dark Mode',
-      biometricLogin: 'Biometric Login',
-      useBiometric: 'Use fingerprint or face ID',
-      healthGoals: 'Health Goals',
-      myGoals: 'My Goals',
-      viewManageGoals: 'View and manage your health goals',
-      goalSettings: 'Goal Settings',
-      configureGoals: 'Configure goal tracking preferences',
-      myGroups: 'My Groups',
-      myGroupsTitle: 'Group Management',
-      manageGroups: 'Manage family & school groups',
-      connectedDevices: 'Connected Devices',
-      deviceManagement: 'Device Management',
-      manageDevices: 'Manage your smart kitchen devices',
-      support: 'Support',
-      helpAndSupport: 'Help & Support',
-      faqsSupport: 'FAQs and customer support',
-      termsOfService: 'Terms of Service',
-      privacyPolicy: 'Privacy Policy',
-      rateApp: 'Rate the App',
-      data: 'Data',
-      exportData: 'Export Data',
-      downloadData: 'Download your health data',
-      clearCache: 'Clear Cache',
-      freeStorage: 'Free up storage space',
-      dangerZone: 'Danger Zone',
-      deleteAccount: 'Delete Account',
-      permanentlyDelete: 'Permanently delete your account',
-      appVersion: 'SwasthTel v1.0.0',
-      copyright: '© 2025 SwasthTel. All rights reserved.',
-    },
-    hi: {
-      myProfile: 'मेरी प्रोफ़ाइल',
-      myOil: 'मेरा तेल',
-      healthReports: 'स्वास्थ्य रिपोर्ट',
-      settings: 'सेटिंग्स',
-      personalInfo: 'व्यक्तिगत जानकारी',
-      householdDetails: 'घरेलू विवरण',
-      familyConsumption: 'परिवार तेल खपत',
-      familyMembers: 'परिवार के सदस्य',
-      verification: 'सत्यापन और विश्वास',
-      achievementsCPS: 'उपलब्धियाँ और CPS स्कोर',
-      rewards: 'पुरस्कार',
-      settingsTitle: 'सेटिंग्स',
-      helpSupport: 'सहायता और समर्थन',
-      logout: 'लॉगआउट',
-      currentOil: 'वर्तमान में उपयोग में तेल',
-      nutritionalProfile: 'पोषण प्रोफ़ाइल',
-      nutritionFacts: 'पोषण तथ्य (प्रति 100ml)',
-      certifications: 'प्रमाणपत्र और मानक',
-      productBadges: 'उत्पाद बैज',
-      changeOil: 'तेल बदलें/अपडेट करें',
-      healthReportsTitle: 'आपकी स्वास्थ्य रिपोर्ट',
-      uploadNew: 'नई रिपोर्ट अपलोड करें',
-      latestReport: 'नवीनतम रिपोर्ट विश्लेषण',
-      allReports: 'सभी रिपोर्ट',
-      healthTrends: 'स्वास्थ्य प्रगति रुझान',
-      edit: 'संपादित करें',
-      addMember: 'सदस्य जोड़ें',
-      phone: 'फोन',
-      email: 'ईमेल',
-      dateOfBirth: 'जन्म तिथि',
-      address: 'पता',
-      familySize: 'परिवार का आकार',
-      members: 'सदस्य',
-      avgConsumption: 'औसत दैनिक तेल खपत',
-      verified: 'सत्यापित',
-      aadhaarVerified: 'आधार सत्यापित',
-      phoneVerified: 'फोन सत्यापित',
-      healthScoreLabel: 'स्वास्थ्य स्कोर',
-      remaining: 'शेष',
-      daysLeft: 'दिन शेष',
-      avgDailyUse: 'औसत दैनिक उपयोग',
-      purchased: 'खरीदा गया',
-      viewDetails: 'विवरण देखें',
-      redeemReward: 'रिडीम करें',
-      notEnough: 'पर्याप्त अंक नहीं',
-      notifications: 'सूचनाएं',
-      privacy: 'गोपनीयता सेटिंग्स',
-      language: 'भाषा',
-      units: 'इकाई प्राथमिकता',
-      contactSupport: 'समर्थन से संपर्क करें',
-      faq: 'अक्सर पूछे जाने वाले प्रश्न',
-      reportBug: 'बग रिपोर्ट करें',
-      uploadReport: 'रिपोर्ट अपलोड करें',
-      analyzed: 'विश्लेषण किया गया',
-      pending: 'लंबित',
-      account: 'खाता',
-      editProfile: 'प्रोफाइल संपादित करें',
-      updatePersonalInfo: 'अपनी व्यक्तिगत जानकारी अपडेट करें',
-      managePrivacy: 'अपनी गोपनीयता प्राथमिकताएं प्रबंधित करें',
-      changePassword: 'पासवर्ड बदलें',
-      updatePassword: 'अपना पासवर्ड अपडेट करें',
-      preferences: 'प्राथमिकताएं',
-      pushNotifications: 'पुश नोटिफिकेशन',
-      dailyReminders: 'दैनिक अनुस्मारक और अपडेट प्राप्त करें',
-      darkMode: 'डार्क मोड',
-      biometricLogin: 'बायोमेट्रिक लॉगिन',
-      useBiometric: 'फिंगरप्रिंट या फेस आईडी का उपयोग करें',
-      healthGoals: 'स्वास्थ्य लक्ष्य',
-      myGoals: 'मेरे लक्ष्य',
-      viewManageGoals: 'अपने स्वास्थ्य लक्ष्यों को देखें और प्रबंधित करें',
-      goalSettings: 'लक्ष्य सेटिंग्स',
-      configureGoals: 'लक्ष्य ट्रैकिंग प्राथमिकताएं कॉन्फ़िगर करें',
-      myGroups: 'मेरे समूह',
-      myGroupsTitle: 'समूह प्रबंधन',
-      manageGroups: 'परिवार और स्कूल समूह प्रबंधित करें',
-      connectedDevices: 'कनेक्टेड डिवाइस',
-      deviceManagement: 'डिवाइस प्रबंधन',
-      manageDevices: 'अपने स्मार्ट किचन डिवाइस प्रबंधित करें',
-      support: 'समर्थन',
-      helpAndSupport: 'सहायता और समर्थन',
-      faqsSupport: 'अक्सर पूछे जाने वाले प्रश्न और ग्राहक समर्थन',
-      termsOfService: 'सेवा की शर्तें',
-      privacyPolicy: 'गोपनीयता नीति',
-      rateApp: 'ऐप को रेट करें',
-      data: 'डेटा',
-      exportData: 'डेटा निर्यात करें',
-      downloadData: 'अपना स्वास्थ्य डेटा डाउनलोड करें',
-      clearCache: 'कैश साफ़ करें',
-      freeStorage: 'भंडारण स्थान खाली करें',
-      dangerZone: 'खतरा क्षेत्र',
-      deleteAccount: 'खाता हटाएं',
-      permanentlyDelete: 'अपना खाता स्थायी रूप से हटाएं',
-      appVersion: 'SwasthTel v1.0.0',
-      copyright: '© 2025 SwasthTel। सर्वाधिकार सुरक्षित।',
-    },
-  };
-
-  const t = text[language as keyof typeof text] || text.en;
 
   // Fetch groups on component mount
   useEffect(() => {
@@ -451,7 +255,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
               onPress={() => setActiveTab('profile')}
             >
               <Text style={[styles.tabText, activeTab === 'profile' && styles.tabTextActive]}>
-                {t.myProfile}
+                {t('profile.myProfile')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -459,7 +263,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
               onPress={() => setActiveTab('myoil')}
             >
               <Text style={[styles.tabText, activeTab === 'myoil' && styles.tabTextActive]}>
-                {t.myOil}
+                {t('profile.myOil')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -467,7 +271,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
               onPress={() => setActiveTab('healthreports')}
             >
               <Text style={[styles.tabText, activeTab === 'healthreports' && styles.tabTextActive]}>
-                {t.healthReports}
+                {t('profile.healthReports')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -475,7 +279,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
               onPress={() => setActiveTab('settings')}
             >
               <Text style={[styles.tabText, activeTab === 'settings' && styles.tabTextActive]}>
-                {t.settings}
+                {t('profile.settings')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -487,16 +291,16 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
             {/* Personal Information */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t.personalInfo}</Text>
+                <Text style={styles.sectionTitle}>{t('profile.personalInfo')}</Text>
                 <TouchableOpacity onPress={() => setShowEditProfile(true)}>
-                  <Text style={styles.editButton}>{t.edit}</Text>
+                  <Text style={styles.editButton}>{t('profile.edit')}</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.card}>
                 <View style={styles.infoRow}>
                   <Ionicons name="call" size={20} color="#1b4a5a" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>{t.phone}</Text>
+                    <Text style={styles.infoLabel}>{t('profile.phone')}</Text>
                     <Text style={styles.infoValue}>{user?.phoneNumber || 'Not provided'}</Text>
                   </View>
                 </View>
@@ -504,7 +308,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 <View style={styles.infoRow}>
                   <Ionicons name="mail" size={20} color="#1b4a5a" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>{t.email}</Text>
+                    <Text style={styles.infoLabel}>{t('profile.email')}</Text>
                     <Text style={styles.infoValue}>{user?.email || 'Not provided'}</Text>
                   </View>
                 </View>
@@ -547,12 +351,12 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Household Details */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.householdDetails}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.householdDetails')}</Text>
               <View style={styles.card}>
                 <View style={styles.infoRow}>
                   <Ionicons name="home" size={20} color="#1b4a5a" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>{t.address}</Text>
+                    <Text style={styles.infoLabel}>{t('profile.address')}</Text>
                     <Text style={styles.infoValue}>Mumbai, Maharashtra</Text>
                   </View>
                 </View>
@@ -560,15 +364,15 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 <View style={styles.infoRow}>
                   <Ionicons name="people" size={20} color="#1b4a5a" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>{t.familySize}</Text>
-                    <Text style={styles.infoValue}>4 {t.members}</Text>
+                    <Text style={styles.infoLabel}>{t('profile.familySize')}</Text>
+                    <Text style={styles.infoValue}>4 {t('profile.members')}</Text>
                   </View>
                 </View>
                 <View style={styles.divider} />
                 <View style={styles.infoRow}>
                   <Ionicons name="water" size={20} color="#1b4a5a" />
                   <View style={styles.infoContent}>
-                    <Text style={styles.infoLabel}>{t.avgConsumption}</Text>
+                    <Text style={styles.infoLabel}>{t('profile.avgConsumption')}</Text>
                     <Text style={styles.infoValue}>120 ml</Text>
                   </View>
                 </View>
@@ -578,7 +382,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
             {/* My Groups */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t.myGroups}</Text>
+                <Text style={styles.sectionTitle}>{t('profile.myGroups')}</Text>
                 <TouchableOpacity onPress={() => navigation?.navigate('Groups')}>
                   <Text style={styles.addButton}>View All</Text>
                 </TouchableOpacity>
@@ -663,7 +467,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Verification */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.verification}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.verification')}</Text>
               <LinearGradient
                 colors={['#dcfce7', '#d1fae5']}
                 style={styles.verificationCard}
@@ -671,7 +475,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 <View style={styles.verificationRow}>
                   <Ionicons name="shield-checkmark" size={24} color="#16a34a" />
                   <View style={styles.verificationInfo}>
-                    <Text style={styles.verificationTitle}>{t.aadhaarVerified}</Text>
+                    <Text style={styles.verificationTitle}>{t('profile.aadhaarVerified')}</Text>
                     <Text style={styles.verificationSubtitle}>XXXX-XXXX-4567</Text>
                   </View>
                   <Ionicons name="checkmark-circle" size={24} color="#16a34a" />
@@ -680,7 +484,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 <View style={styles.verificationRow}>
                   <Ionicons name="call" size={24} color="#16a34a" />
                   <View style={styles.verificationInfo}>
-                    <Text style={styles.verificationTitle}>{t.phoneVerified}</Text>
+                    <Text style={styles.verificationTitle}>{t('profile.phoneVerified')}</Text>
                     <Text style={styles.verificationSubtitle}>{user?.phoneNumber || user?.email || 'Not verified'}</Text>
                   </View>
                   <Ionicons name="checkmark-circle" size={24} color="#16a34a" />
@@ -691,7 +495,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
             {/* Achievements */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t.achievementsCPS}</Text>
+                <Text style={styles.sectionTitle}>{t('profile.achievementsCPS')}</Text>
                 <View style={styles.cpsBadge}>
                   <Text style={styles.cpsText}>{cpsScore}</Text>
                 </View>
@@ -735,7 +539,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
             {/* Rewards - Navigate to Full Screen */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t.rewards}</Text>
+                <Text style={styles.sectionTitle}>{t('profile.rewards')}</Text>
                 <TouchableOpacity
                   onPress={() => navigation?.navigate('Rewards')}
                   style={styles.viewAllButton}
@@ -801,7 +605,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                     disabled={!reward.available}
                   >
                     <Text style={styles.redeemText}>
-                      {reward.available ? t.redeemReward : t.notEnough}
+                      {reward.available ? t('profile.redeemReward') : t('profile.notEnough')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -811,7 +615,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
             {/* Logout */}
             <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
               <Ionicons name="log-out" size={20} color="#ffffff" />
-              <Text style={styles.logoutText}>{t.logout}</Text>
+              <Text style={styles.logoutText}>{t('profile.logout')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -821,7 +625,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
           <View style={styles.content}>
             {/* Current Oil Overview */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.currentOil}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.currentOil')}</Text>
               <View style={styles.oilCard}>
                 <View style={styles.oilHeader}>
                   <View style={{ flex: 1 }}>
@@ -849,22 +653,22 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
                 <View style={styles.oilStats}>
                   <View style={styles.oilStat}>
-                    <Text style={styles.oilStatLabel}>{t.remaining}</Text>
+                    <Text style={styles.oilStatLabel}>{t('profile.remaining')}</Text>
                     <Text style={styles.oilStatValue}>{currentOil.remaining}</Text>
                   </View>
                   <View style={styles.oilStat}>
-                    <Text style={styles.oilStatLabel}>{t.daysLeft}</Text>
+                    <Text style={styles.oilStatLabel}>{t('profile.daysLeft')}</Text>
                     <Text style={styles.oilStatValue}>{currentOil.daysLeft}</Text>
                   </View>
                   <View style={styles.oilStat}>
-                    <Text style={styles.oilStatLabel}>{t.avgDailyUse}</Text>
+                    <Text style={styles.oilStatLabel}>{t('profile.avgDailyUse')}</Text>
                     <Text style={styles.oilStatValue}>{currentOil.avgDailyUse}</Text>
                   </View>
                 </View>
 
                 <View style={styles.oilDetails}>
                   <Text style={styles.oilDetailText}>
-                    <Text style={styles.oilDetailLabel}>{t.purchased}: </Text>
+                    <Text style={styles.oilDetailLabel}>{t('profile.purchased')}: </Text>
                     {currentOil.purchaseDate}
                   </Text>
                   <Text style={styles.oilDetailText}>
@@ -889,7 +693,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Nutritional Profile */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.nutritionalProfile}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.nutritionalProfile')}</Text>
               <View style={styles.card}>
                 <View style={styles.nutritionRow}>
                   <Text style={styles.nutritionLabel}>PUFA</Text>
@@ -917,7 +721,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Nutrition Facts */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.nutritionFacts}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.nutritionFacts')}</Text>
               <View style={styles.card}>
                 {Object.entries(currentOil.nutritionPer100ml).map(([key, value], index) => (
                   <View key={index}>
@@ -935,7 +739,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Certifications */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.certifications}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.certifications')}</Text>
               <View style={styles.certificationsRow}>
                 {currentOil.certifications.map((cert, index) => (
                   <View key={index} style={styles.certificationBadge}>
@@ -952,7 +756,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
               onPress={() => setShowChangeOil(true)}
             >
               <Ionicons name="water" size={20} color="#ffffff" />
-              <Text style={styles.changeOilText}>{t.changeOil}</Text>
+              <Text style={styles.changeOilText}>{t('profile.changeOil')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -963,9 +767,9 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
             {/* Upload Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t.healthReportsTitle}</Text>
+                <Text style={styles.sectionTitle}>{t('profile.healthReportsTitle')}</Text>
                 <TouchableOpacity onPress={() => setShowUploadReport(true)}>
-                  <Text style={styles.uploadButton}>{t.uploadReport}</Text>
+                  <Text style={styles.uploadButton}>{t('profile.uploadReport')}</Text>
                 </TouchableOpacity>
               </View>
               <LinearGradient
@@ -983,7 +787,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
             {/* Latest Report */}
             {medicalReports.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t.latestReport}</Text>
+                <Text style={styles.sectionTitle}>{t('profile.latestReport')}</Text>
                 <View style={styles.reportCard}>
                   <View style={styles.reportHeader}>
                     <View>
@@ -991,7 +795,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                       <Text style={styles.reportDate}>{medicalReports[0].date}</Text>
                     </View>
                     <View style={styles.analyzedBadge}>
-                      <Text style={styles.analyzedText}>{t.analyzed}</Text>
+                      <Text style={styles.analyzedText}>{t('profile.analyzed')}</Text>
                     </View>
                   </View>
 
@@ -1020,7 +824,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* All Reports */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.allReports}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.allReports')}</Text>
               {medicalReports.map((report) => (
                 <TouchableOpacity key={report.id} style={styles.reportListCard}>
                   <View style={styles.reportIcon}>
@@ -1043,7 +847,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
           <View style={styles.content}>
             {/* Account Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.account}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.account')}</Text>
               <View style={styles.card}>
                 <TouchableOpacity 
                   style={styles.settingRow}
@@ -1051,8 +855,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 >
                   <Ionicons name="person-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.editProfile}</Text>
-                    <Text style={styles.settingSubtext}>{t.updatePersonalInfo}</Text>
+                    <Text style={styles.settingText}>{t('profile.editProfile')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.updatePersonalInfo')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1063,8 +867,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 >
                   <Ionicons name="shield-checkmark-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.privacy}</Text>
-                    <Text style={styles.settingSubtext}>{t.managePrivacy}</Text>
+                    <Text style={styles.settingText}>{t('profile.privacy')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.managePrivacy')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1072,8 +876,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 <TouchableOpacity style={styles.settingRow}>
                   <Ionicons name="lock-closed-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.changePassword}</Text>
-                    <Text style={styles.settingSubtext}>{t.updatePassword}</Text>
+                    <Text style={styles.settingText}>{t('profile.changePassword')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.updatePassword')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1082,13 +886,13 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Preferences Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.preferences}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.preferences')}</Text>
               <View style={styles.card}>
                 <View style={styles.settingRow}>
                   <Ionicons name="notifications-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.pushNotifications}</Text>
-                    <Text style={styles.settingSubtext}>{t.dailyReminders}</Text>
+                    <Text style={styles.settingText}>{t('profile.pushNotifications')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.dailyReminders')}</Text>
                   </View>
                   <Switch
                     value={notifications}
@@ -1101,7 +905,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 <View style={styles.settingRow}>
                   <Ionicons name="moon-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.darkMode}</Text>
+                    <Text style={styles.settingText}>{t('profile.darkMode')}</Text>
                   </View>
                   <Switch
                     value={darkMode}
@@ -1114,8 +918,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 <View style={styles.settingRow}>
                   <Ionicons name="finger-print-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.biometricLogin}</Text>
-                    <Text style={styles.settingSubtext}>{t.useBiometric}</Text>
+                    <Text style={styles.settingText}>{t('profile.biometricLogin')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.useBiometric')}</Text>
                   </View>
                   <Switch
                     value={biometrics}
@@ -1124,20 +928,18 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                     thumbColor="#ffffff"
                   />
                 </View>
-                <View style={styles.divider} />
-                <TouchableOpacity style={styles.settingRow}>
-                  <Ionicons name="language-outline" size={20} color="#1b4a5a" />
-                  <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.language}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
-                </TouchableOpacity>
               </View>
+            </View>
+
+            {/* Language Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('profile.language')}</Text>
+              <LanguageSelector />
             </View>
 
             {/* Health Goals Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.healthGoals}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.healthGoals')}</Text>
               <View style={styles.card}>
                 <TouchableOpacity 
                   style={styles.settingRow}
@@ -1145,8 +947,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 >
                   <Ionicons name="fitness-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.myGoals}</Text>
-                    <Text style={styles.settingSubtext}>{t.viewManageGoals}</Text>
+                    <Text style={styles.settingText}>{t('profile.myGoals')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.viewManageGoals')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1157,8 +959,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 >
                   <Ionicons name="analytics-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.goalSettings}</Text>
-                    <Text style={styles.settingSubtext}>{t.configureGoals}</Text>
+                    <Text style={styles.settingText}>{t('profile.goalSettings')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.configureGoals')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1167,7 +969,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Groups Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.myGroupsTitle}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.myGroupsTitle')}</Text>
               <View style={styles.card}>
                 <TouchableOpacity 
                   style={styles.settingRow}
@@ -1175,8 +977,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 >
                   <Ionicons name="people-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.myGroups}</Text>
-                    <Text style={styles.settingSubtext}>{t.manageGroups}</Text>
+                    <Text style={styles.settingText}>{t('profile.myGroups')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.manageGroups')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1185,7 +987,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Connected Devices Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.connectedDevices}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.connectedDevices')}</Text>
               <View style={styles.card}>
                 <TouchableOpacity 
                   style={styles.settingRow}
@@ -1193,8 +995,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 >
                   <Ionicons name="hardware-chip-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.deviceManagement}</Text>
-                    <Text style={styles.settingSubtext}>{t.manageDevices}</Text>
+                    <Text style={styles.settingText}>{t('profile.deviceManagement')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.manageDevices')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1203,7 +1005,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Support Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.support}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.support')}</Text>
               <View style={styles.card}>
                 <TouchableOpacity 
                   style={styles.settingRow}
@@ -1211,8 +1013,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 >
                   <Ionicons name="help-circle-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.helpAndSupport}</Text>
-                    <Text style={styles.settingSubtext}>{t.faqsSupport}</Text>
+                    <Text style={styles.settingText}>{t('profile.helpAndSupport')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.faqsSupport')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1220,7 +1022,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 <TouchableOpacity style={styles.settingRow}>
                   <Ionicons name="document-text-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.termsOfService}</Text>
+                    <Text style={styles.settingText}>{t('profile.termsOfService')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1228,7 +1030,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 <TouchableOpacity style={styles.settingRow}>
                   <Ionicons name="shield-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.privacyPolicy}</Text>
+                    <Text style={styles.settingText}>{t('profile.privacyPolicy')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1236,7 +1038,7 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 <TouchableOpacity style={styles.settingRow}>
                   <Ionicons name="star-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.rateApp}</Text>
+                    <Text style={styles.settingText}>{t('profile.rateApp')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1245,13 +1047,13 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Data Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.data}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.data')}</Text>
               <View style={styles.card}>
                 <TouchableOpacity style={styles.settingRow}>
                   <Ionicons name="cloud-download-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.exportData}</Text>
-                    <Text style={styles.settingSubtext}>{t.downloadData}</Text>
+                    <Text style={styles.settingText}>{t('profile.exportData')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.downloadData')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1260,8 +1062,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                   style={styles.settingRow}
                   onPress={() => {
                     Alert.alert(
-                      t.clearCache,
-                      t.freeStorage,
+                      t('profile.clearCache'),
+                      t('profile.freeStorage'),
                       [
                         { text: 'Cancel', style: 'cancel' },
                         { text: 'Clear', onPress: () => Alert.alert('Success', 'Cache cleared successfully') },
@@ -1271,8 +1073,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 >
                   <Ionicons name="trash-outline" size={20} color="#1b4a5a" />
                   <View style={styles.settingInfo}>
-                    <Text style={styles.settingText}>{t.clearCache}</Text>
-                    <Text style={styles.settingSubtext}>{t.freeStorage}</Text>
+                    <Text style={styles.settingText}>{t('profile.clearCache')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.freeStorage')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#5B5B5B" />
                 </TouchableOpacity>
@@ -1281,14 +1083,14 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* Danger Zone Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t.dangerZone}</Text>
+              <Text style={styles.sectionTitle}>{t('profile.dangerZone')}</Text>
               <View style={styles.card}>
                 <TouchableOpacity 
                   style={styles.settingRow}
                   onPress={() => {
                     Alert.alert(
-                      t.deleteAccount,
-                      t.permanentlyDelete,
+                      t('profile.deleteAccount'),
+                      t('profile.permanentlyDelete'),
                       [
                         { text: 'Cancel', style: 'cancel' },
                         { 
@@ -1304,8 +1106,8 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
                 >
                   <Ionicons name="trash-outline" size={20} color="#ef4444" />
                   <View style={styles.settingInfo}>
-                    <Text style={[styles.settingText, { color: '#ef4444' }]}>{t.deleteAccount}</Text>
-                    <Text style={styles.settingSubtext}>{t.permanentlyDelete}</Text>
+                    <Text style={[styles.settingText, { color: '#ef4444' }]}>{t('profile.deleteAccount')}</Text>
+                    <Text style={styles.settingSubtext}>{t('profile.permanentlyDelete')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#ef4444" />
                 </TouchableOpacity>
@@ -1314,14 +1116,14 @@ export function MobileProfile({ language, onLogout, navigation }: MobileProfileP
 
             {/* App Info */}
             <View style={styles.appInfo}>
-              <Text style={styles.appVersion}>{t.appVersion}</Text>
-              <Text style={styles.appCopyright}>{t.copyright}</Text>
+              <Text style={styles.appVersion}>{t('profile.appVersion')}</Text>
+              <Text style={styles.appCopyright}>{t('profile.copyright')}</Text>
             </View>
 
             {/* Logout */}
             <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
               <Ionicons name="log-out" size={20} color="#ffffff" />
-              <Text style={styles.logoutText}>{t.logout}</Text>
+              <Text style={styles.logoutText}>{t('profile.logout')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1460,7 +1262,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   tabText: {
-    fontSize: 15,
+    fontSize: 13,
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '500',
   },
@@ -2461,3 +2263,4 @@ const styles = StyleSheet.create({
     color: '#1b4a5a',
   },
 });
+

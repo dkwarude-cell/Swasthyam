@@ -91,6 +91,16 @@ export type MainStackParamList = {
     deviceId: string;
     deviceName?: string;
   };
+  IoTDeviceDetail: {
+    device: {
+      id: string;
+      name: string;
+      type: string;
+      status: 'connected' | 'disconnected' | 'pairing';
+      lastSync: string;
+      batteryLevel?: number;
+    };
+  };
   TrendView: {
     type?: 'daily' | 'weekly' | 'monthly';
   };
@@ -125,6 +135,60 @@ export type MainStackParamList = {
   EducationModule: {
     moduleId: string;
     moduleName?: string;
+  };
+  EducationHub: undefined;
+  ModuleDetail: {
+    module: {
+      id: string;
+      title: { en: string; hi: string };
+      description: { en: string; hi: string };
+      duration: string;
+      progress: number;
+      videos: number;
+      points: number;
+      level: string;
+      icon: string;
+      color: string[];
+    };
+  };
+  VideoLesson: {
+    lesson: {
+      id: string;
+      title: { en: string; hi: string };
+      duration: string;
+      type: string;
+    };
+    module: {
+      id: string;
+      title: { en: string; hi: string };
+      color: string[];
+    };
+  };
+  Quiz: {
+    lesson: {
+      id: string;
+      title: { en: string; hi: string };
+      duration: string;
+      type: string;
+    };
+    module: {
+      id: string;
+      title: { en: string; hi: string };
+      color: string[];
+    };
+  };
+  ReadingLesson: {
+    lesson: {
+      id: string;
+      title: { en: string; hi: string };
+      duration: string;
+      type: string;
+    };
+    module: {
+      id: string;
+      title: { en: string; hi: string };
+      color: string[];
+    };
   };
   
   // Groups Screens

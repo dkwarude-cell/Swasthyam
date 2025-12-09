@@ -13,9 +13,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Card, CardContent } from './Card';
 import { Badge } from './Badge';
+import { t } from '../../i18n';
 
 interface MobileCommunityProps {
-  language: string;
   navigation?: any;
 }
 

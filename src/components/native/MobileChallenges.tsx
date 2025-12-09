@@ -11,9 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card, CardContent } from './Card';
 import { Badge } from './Badge';
 import { Progress } from './Progress';
+import { t } from '../../i18n';
 
 interface MobileChallengesProps {
-  language: string;
   navigation?: any;
 }
 
@@ -78,43 +78,8 @@ const leaderboard = [
   { rank: 12, name: 'You', city: 'Chennai', reduction: 18, points: 1850, isCurrentUser: true },
 ];
 
-export function MobileChallenges({ language, navigation }: MobileChallengesProps) {
+export function MobileChallenges({ navigation }: MobileChallengesProps) {
   const [selectedTab, setSelectedTab] = useState<'my' | 'explore' | 'leaderboard'>('my');
-
-  const text = {
-    en: {
-      title: 'Community Challenges',
-      subtitle: 'Family & School competitions',
-      points: 'Points',
-      streak: 'Day Streak',
-      rank: 'Rank',
-      myChallenges: 'My Challenges',
-      explore: 'Explore',
-      leaderboard: 'Leaderboard',
-      reward: 'Reward',
-      participants: 'participants',
-      join: 'Join Challenge',
-      city: 'City',
-      reduction: 'Reduction',
-    },
-    hi: {
-      title: 'सामुदायिक चुनौतियाँ',
-      subtitle: 'परिवार और स्कूल प्रतियोगिताएं',
-      points: 'अंक',
-      streak: 'दिन स्ट्रीक',
-      rank: 'रैंक',
-      myChallenges: 'मेरी चुनौतियाँ',
-      explore: 'खोजें',
-      leaderboard: 'लीडरबोर्ड',
-      reward: 'पुरस्कार',
-      participants: 'प्रतिभागी',
-      join: 'चुनौती में शामिल हों',
-      city: 'शहर',
-      reduction: 'कमी',
-    },
-  };
-
-  const t = text[language as keyof typeof text] || text.en;
 
   const renderActiveChallenge = ({ item }: { item: typeof activeChallenges[0] }) => (
     <Card style={styles.challengeCard}>

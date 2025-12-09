@@ -65,6 +65,8 @@ export { GroupDetailScreen } from './screens/GroupDetailScreen';
 export { GroupDashboardScreen } from './screens/GroupDashboardScreen';
 export { GroupManagementScreen } from './screens/GroupManagementScreen';
 
+export { IoTDeviceDetail } from './IoTDeviceDetail';
+
 export { PartnerDetailScreen } from './screens/PartnerDetailScreen';
 export { PartnerSearchScreen } from './screens/PartnerSearchScreen';
 export { BlockchainVerificationScreen } from './screens/BlockchainVerificationScreen';
@@ -93,3 +95,4 @@ export { Badge } from './Badge';
 export { Progress } from './Progress';
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';
 export { WebView } from './WebView';
+export { default as LanguageSelector } from './LanguageSelector';

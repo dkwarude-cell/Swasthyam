@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiService, { User, SignupData, LoginData, OnboardingData, ApiResponse } from '../services/api';
+import { changeLanguage } from '../i18n';
 
 // Storage keys
 const TOKEN_KEY = '@swasthtel_token';
 const USER_KEY = '@swasthtel_user';
+const LANGUAGE_KEY = '@swasthtel_language';
 
 interface AuthContextType {
   user: User | null;
@@ -62,30 +64,69 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       const storedToken = await AsyncStorage.getItem(TOKEN_KEY);
       const storedUser = await AsyncStorage.getItem(USER_KEY);
+      const storedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
 
       console.log('Stored token exists:', !!storedToken);
       console.log('Stored user exists:', !!storedUser);
 
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        apiService.setToken(storedToken);
-        
-        // Verify token is still valid by fetching user
+      // Set language from storage or user preference
+      if (storedLanguage) {
         try {
-          const response = await apiService.getMe();
+          changeLanguage(storedLanguage);
+        } catch (langErr) {
+          console.error('Error changing language:', langErr);
+          changeLanguage('en');
+        }
+      }
+
+      if (storedToken && storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setToken(storedToken);
+          setUser(parsedUser);
+          apiService.setToken(storedToken);
           
-          if (response.success && response.user) {
-            console.log('User verified successfully');
-            setUser(response.user);
-            await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.user));
-          } else {
-            // Token invalid, clear storage
-            console.log('Token invalid, clearing storage');
-            await clearStorage();
+          // Sync language with user preference
+          if (parsedUser?.language) {
+            try {
+              changeLanguage(parsedUser.language);
+            } catch (langErr) {
+              console.error('Error changing user language:', langErr);
+            }
           }
-        } catch (apiErr) {
-          console.error('API error during auth load:', apiErr);
-          // If API fails (e.g., network error), still use stored user but flag as potentially stale
+          
+          // Verify token is still valid by fetching user (non-blocking)
+          // This runs in the background and doesn't block the UI
+          setTimeout(async () => {
+            try {
+              const response = await apiService.getMe();
+              
+              if (response.success && response.user) {
+                console.log('User verified successfully');
+                setUser(response.user);
+                await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.user));
+                
+                // Sync language with user preference
+                if (response.user.language) {
+                  try {
+                    changeLanguage(response.user.language);
+                    await AsyncStorage.setItem(LANGUAGE_KEY, response.user.language);
+                  } catch (langErr) {
+                    console.error('Error syncing language:', langErr);
+                  }
+                }
+              } else {
+                // Token invalid, clear storage
+                console.log('Token invalid, clearing storage');
+                await clearStorage();
+              }
+            } catch (apiErr) {
+              console.error('API error during background auth verification:', apiErr);
+              // Keep using stored user if API is unavailable
+            }
+          }, 100);
+        } catch (parseErr) {
+          console.error('Error parsing stored user:', parseErr);
           await clearStorage();
         }
       } else {
@@ -93,7 +134,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (err) {
       console.error('Error loading stored auth:', err);
-      await clearStorage();
+      try {
+        await clearStorage();
+      } catch (clearErr) {
+        console.error('Error clearing storage:', clearErr);
+      }
     } finally {
       console.log('Auth loading complete');
       setIsLoading(false);
@@ -102,10 +147,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const clearStorage = async () => {
     try {
-      await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+      await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY, LANGUAGE_KEY]);
       setToken(null);
       setUser(null);
       apiService.setToken(null);
+      changeLanguage('en'); // Reset to default language
     } catch (err) {
       console.error('Error clearing storage:', err);
     }
@@ -155,6 +201,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setToken(response.token);
         setUser(response.user);
         
+        // Sync language
+        if (response.user.language) {
+          changeLanguage(response.user.language);
+          await AsyncStorage.setItem(LANGUAGE_KEY, response.user.language);
+        }
+        
         return response;
       } else {
         setError(response.message || 'Login failed');
@@ -181,6 +233,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       setToken(authToken);
       setUser(authUser);
+      
+      // Sync language
+      if (authUser.language) {
+        changeLanguage(authUser.language);
+        await AsyncStorage.setItem(LANGUAGE_KEY, authUser.language);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Social login failed';
       setError(message);
@@ -252,6 +310,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.success && response.user) {
         setUser(response.user);
         await AsyncStorage.setItem(USER_KEY, JSON.stringify(response.user));
+        
+        // Sync language if changed
+        if (data.language && response.user.language) {
+          changeLanguage(response.user.language);
+          await AsyncStorage.setItem(LANGUAGE_KEY, response.user.language);
+        }
+        
         return response;
       } else {
         setError(response.message || 'Failed to update profile');

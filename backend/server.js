@@ -7,7 +7,7 @@ const connectDB = require('./config/database');
 const authRoutes = require('./routes/auth');
 const oilConsumptionRoutes = require('./routes/oilConsumption');
 const groupRoutes = require('./routes/groups');
-const barcodeRoutes = require('./routes/barcode');
+// const barcodeRoutes = require('./routes/barcode'); // DISABLED - OpenCV module removed
 const { errorHandler, notFound } = require('./middleware/error');
 
 // Initialize Express
@@ -65,7 +65,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/oil', oilConsumptionRoutes);
 app.use('/api/groups', groupRoutes);
-app.use('/api/barcode', barcodeRoutes);
+// app.use('/api/barcode', barcodeRoutes); // DISABLED - OpenCV module removed
 
 // Root route
 app.get('/', (req, res) => {
@@ -92,11 +92,11 @@ app.get('/', (req, res) => {
         updateEntry: 'PUT /api/oil/:id',
         deleteEntry: 'DELETE /api/oil/:id'
       },
-      barcode: {
-        scan: 'POST /api/barcode/scan',
-        lookup: 'GET /api/barcode/lookup/:barcode',
-        search: 'GET /api/barcode/search'
-      }
+      // barcode: {
+      //   scan: 'POST /api/barcode/scan',
+      //   lookup: 'GET /api/barcode/lookup/:barcode',
+      //   search: 'GET /api/barcode/search'
+      // }, // DISABLED - OpenCV module removed
     }
   });
 });

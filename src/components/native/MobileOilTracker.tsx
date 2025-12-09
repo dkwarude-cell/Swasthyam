@@ -20,9 +20,9 @@ import { Progress } from './Progress';
 import { calculateSwasthaIndex } from '../../utils/swasthaIndex';
 import { searchFood, calculateOilAmount, FoodItem } from '../../data/foodDatabase';
 import apiService from '../../services/api';
+import { t } from '../../i18n';
 
 interface MobileOilTrackerProps {
-  language: string;
   navigation?: any;
   route?: { params?: { targetDate?: string } };
 }
@@ -41,7 +41,7 @@ interface OilEntry {
   consumedAt?: string;
 }
 
-export function MobileOilTracker({ language, navigation, route }: MobileOilTrackerProps) {
+export function MobileOilTracker({ navigation, route }: MobileOilTrackerProps) {
   const [showLogEntry, setShowLogEntry] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
@@ -52,6 +52,21 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
   const [editingEntry, setEditingEntry] = useState<OilEntry | null>(null);
   const targetDateParam = route?.params?.targetDate;
   const [logDate, setLogDate] = useState<Date>(targetDateParam ? new Date(targetDateParam) : new Date());
+  
+  // Tab state for Manual Entry vs IoT Device
+  const [activeTab, setActiveTab] = useState<'manual' | 'iot'>('manual');
+  
+  // IoT Device state
+  const [iotDevices, setIotDevices] = useState<Array<{
+    id: string;
+    name: string;
+    type: string;
+    status: 'connected' | 'disconnected' | 'pairing';
+    lastSync: string;
+    batteryLevel?: number;
+  }>>([]);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isPairing, setIsPairing] = useState(false);
   
   // Group logging state
   const [adminGroups, setAdminGroups] = useState<any[]>([]);
@@ -92,9 +107,9 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
     return entryDay === selectedDay;
   });
   const dayTotal = dayEntries.reduce((sum, entry) => sum + entry.amount, 0);
-  const dayTotalCal = Math.round(dayTotal * 9 * (6.25 / 100)); // Convert ml to calories
+  const dayTotalCal = Math.round(dayTotal * 9 * (6.25 / 100)); // Convert ml to calories (tracking side - lower)
   const dayTarget = personalizedLimit || 40; // Use personalized limit or fallback to 40ml
-  const dayTargetCal = Math.round(dayTarget * 9 * (6.25 / 100));
+  const dayTargetCal = Math.round(dayTarget * 9); // Limit side - higher (old formula)
   const percentage = (dayTotal / dayTarget) * 100;
 
   // Load entries when date changes
@@ -111,6 +126,96 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
   useEffect(() => {
     handleSearch('');
   }, []);
+
+  // Load IoT devices on mount
+  useEffect(() => {
+    loadIotDevices();
+  }, []);
+
+  const loadIotDevices = async () => {
+    // Simulated IoT devices - in production, this would fetch from backend
+    try {
+      // Mock data for demonstration - replace with actual API call
+      const mockDevices = [
+        {
+          id: 'iot-001',
+          name: 'Smart Oil Dispenser',
+          type: 'oil_dispenser',
+          status: 'connected' as const,
+          lastSync: new Date().toISOString(),
+          batteryLevel: 85,
+        },
+      ];
+      setIotDevices(mockDevices);
+    } catch (error) {
+      console.error('Error loading IoT devices:', error);
+    }
+  };
+
+  const handleScanForDevices = async () => {
+    setIsScanning(true);
+    // Simulate scanning for devices
+    setTimeout(() => {
+      setIsScanning(false);
+      Alert.alert(
+        'Scan Complete',
+        'Found 1 nearby device. Tap to pair.',
+        [{ text: 'OK' }]
+      );
+    }, 3000);
+  };
+
+  const handlePairDevice = async (deviceId: string) => {
+    setIsPairing(true);
+    // Simulate pairing process
+    setTimeout(() => {
+      setIsPairing(false);
+      setIotDevices(prev => prev.map(d => 
+        d.id === deviceId ? { ...d, status: 'connected' as const } : d
+      ));
+      Alert.alert('Success', 'Device paired successfully!');
+    }, 2000);
+  };
+
+  const handleDisconnectDevice = (deviceId: string) => {
+    Alert.alert(
+      'Disconnect Device',
+      'Are you sure you want to disconnect this device?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Disconnect',
+          style: 'destructive',
+          onPress: () => {
+            setIotDevices(prev => prev.map(d => 
+              d.id === deviceId ? { ...d, status: 'disconnected' as const } : d
+            ));
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSyncDevice = async (deviceId: string) => {
+    try {
+      setIsLoading(true);
+      // Simulate syncing data from device
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Update last sync time
+      setIotDevices(prev => prev.map(d => 
+        d.id === deviceId ? { ...d, lastSync: new Date().toISOString() } : d
+      ));
+      
+      // Reload entries to show any new data
+      await loadEntries();
+      Alert.alert('Sync Complete', 'Oil consumption data synced from device');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to sync device data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const loadAdminGroups = async () => {
     try {
@@ -330,9 +435,9 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
         });
 
         if (response.success && response.data) {
-          // Add the new entry to local state
+          // Add the new entry to local state using the MongoDB _id
           const newEntry: OilEntry = {
-            id: Date.now().toString(),
+            id: (response.data as any).entry?._id || response.data._id || Date.now().toString(), // Use the actual MongoDB ID
             dish: selectedFood.name,
             amount: Math.round(oilAmount * 10) / 10,
             oil: 'Vegetable Oil',
@@ -346,12 +451,12 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
           };
           
           if (editingEntry) {
-            // Update existing entry
-            setEntries(prev => prev.map(e => e.id === editingEntry.id ? newEntry : e));
+            // Update existing entry - reload from server to get fresh data
+            await loadEntries();
             Alert.alert('Success', 'Entry updated successfully');
           } else {
-            // Add new entry
-            setEntries(prev => [newEntry, ...prev]);
+            // Reload entries from server to get the proper MongoDB ID
+            await loadEntries();
             const caloriesLogged = Math.round(oilAmount * 9 * (6.25 / 100));
             Alert.alert('Success', `Logged ${caloriesLogged} cal (${oilAmount.toFixed(1)}ml)`);
           }
@@ -374,66 +479,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
     }
   };
 
-  const text = {
-    en: {
-      title: 'Oil Tracker',
-      subtitle: 'Track your daily consumption',
-      todayUsage: "Today's Usage",
-      remaining: 'remaining',
-      logButton: 'Log Oil Usage',
-      logTitle: 'Log Consumption',
-      dishLabel: 'Dish Prepared',
-      dishPlaceholder: 'e.g., Aloo Paratha',
-      oilLabel: 'Oil Type',
-      oilPlaceholder: 'e.g., Mustard Oil',
-      amountLabel: 'Amount (ml)',
-      amountPlaceholder: 'e.g., 15',
-      selectMembers: 'Select Members',
-      cancel: 'Cancel',
-      save: 'Save Entry',
-      update: 'Update Entry',
-      recentEntries: 'Recent Entries',
-      verified: 'Verified',
-      edit: 'Edit',
-      delete: 'Delete',
-      groupLogging: 'Group Logging',
-      selectGroup: 'Select Group',
-      personalLog: 'Log for Self',
-      logForMembers: 'Log for Members',
-      noGroups: 'No groups available',
-      noGroupsDesc: 'Create a group to log for multiple members',
-    },
-    hi: {
-      title: 'तेल ट्रैकर',
-      subtitle: 'अपनी दैनिक खपत ट्रैक करें',
-      todayUsage: 'आज का उपयोग',
-      remaining: 'शेष',
-      logButton: 'तेल उपयोग लॉग करें',
-      logTitle: 'खपत लॉग करें',
-      dishLabel: 'व्यंजन तैयार',
-      dishPlaceholder: 'उदा., आलू पराठा',
-      oilLabel: 'तेल प्रकार',
-      oilPlaceholder: 'उदा., सरसों का तेल',
-      amountLabel: 'मात्रा (मिली)',
-      amountPlaceholder: 'उदा., 15',
-      selectMembers: 'सदस्य चुनें',
-      cancel: 'रद्द करें',
-      save: 'प्रविष्टि सहेजें',
-      update: 'प्रविष्टि अपडेट करें',
-      recentEntries: 'हाल की प्रविष्टियां',
-      verified: 'सत्यापित',
-      edit: 'संपादित करें',
-      delete: 'हटाएं',
-      groupLogging: 'समूह लॉगिंग',
-      selectGroup: 'समूह चुनें',
-      personalLog: 'स्वयं के लिए लॉग करें',
-      logForMembers: 'सदस्यों के लिए लॉग करें',
-      noGroups: 'कोई समूह उपलब्ध नहीं',
-      noGroupsDesc: 'कई सदस्यों के लिए लॉग करने हेतु समूह बनाएं',
-    },
-  };
 
-  const t = text[language as keyof typeof text] || text.en;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -454,8 +500,8 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
               <Ionicons name="water" size={24} color="#ffffff" />
             </View>
             <View>
-              <Text style={styles.title}>{t.title}</Text>
-              <Text style={styles.subtitle}>{t.subtitle}</Text>
+              <Text style={styles.title}>{t('navigation.oilTracker')}</Text>
+              <Text style={styles.subtitle}>{t('oilTracker.title')}</Text>
             </View>
           </View>
           <View style={{ width: 40 }} />
@@ -463,26 +509,241 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
 
         {/* Progress Card */}
         <View style={styles.progressCard}>
-          <Text style={styles.progressLabel}>{t.todayUsage}</Text>
+          <Text style={styles.progressLabel}>{t('oilTracker.totalToday')}</Text>
           <View style={styles.progressValues}>
             <Text style={styles.progressCurrent}>{dayTotalCal} cal</Text>
             <Text style={styles.progressTarget}>/ {dayTargetCal} cal</Text>
           </View>
           <Progress value={percentage} style={styles.progressBar} />
           <Text style={styles.progressRemaining}>
-            {Math.max(0, dayTargetCal - dayTotalCal)} cal {t.remaining}
+            {Math.max(0, dayTargetCal - dayTotalCal)} cal {t('home.remaining')}
           </Text>
         </View>
       </LinearGradient>
 
       {/* Main Content */}
       <ScrollView style={styles.content}>
+        {/* Tab Selector */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'manual' && styles.tabActive]}
+            onPress={() => setActiveTab('manual')}
+          >
+            <Ionicons 
+              name="create-outline" 
+              size={20} 
+              color={activeTab === 'manual' ? '#ffffff' : '#5B5B5B'} 
+            />
+            <Text style={[styles.tabText, activeTab === 'manual' && styles.tabTextActive]}>
+              Manual Entry
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'iot' && styles.tabActive]}
+            onPress={() => setActiveTab('iot')}
+          >
+            <Ionicons 
+              name="hardware-chip-outline" 
+              size={20} 
+              color={activeTab === 'iot' ? '#ffffff' : '#5B5B5B'} 
+            />
+            <Text style={[styles.tabText, activeTab === 'iot' && styles.tabTextActive]}>
+              IoT Device
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* IoT Device Tab Content */}
+        {activeTab === 'iot' && (
+          <View style={styles.iotContainer}>
+            {/* Connected Devices Section */}
+            <View style={styles.iotSection}>
+              <Text style={styles.iotSectionTitle}>Connected Devices</Text>
+              {iotDevices.length === 0 ? (
+                <Card style={styles.iotEmptyCard}>
+                  <CardContent style={styles.iotEmptyContent}>
+                    <Ionicons name="hardware-chip-outline" size={48} color="#d1d5db" />
+                    <Text style={styles.iotEmptyText}>No devices connected</Text>
+                    <Text style={styles.iotEmptySubtext}>Scan for nearby smart oil dispensers</Text>
+                  </CardContent>
+                </Card>
+              ) : (
+                iotDevices.map((device) => (
+                  <TouchableOpacity 
+                    key={device.id} 
+                    onPress={() => navigation?.navigate('IoTDeviceDetail', { device })}
+                    activeOpacity={0.7}
+                  >
+                  <Card style={styles.iotDeviceCard}>
+                    <CardContent style={styles.iotDeviceContent}>
+                      <View style={styles.iotDeviceHeader}>
+                        <View style={[
+                          styles.iotDeviceIcon,
+                          device.status === 'connected' && styles.iotDeviceIconConnected,
+                          device.status === 'disconnected' && styles.iotDeviceIconDisconnected,
+                        ]}>
+                          <Ionicons 
+                            name={device.type === 'oil_dispenser' ? 'water' : 'hardware-chip'} 
+                            size={24} 
+                            color={device.status === 'connected' ? '#16a34a' : '#9ca3af'} 
+                          />
+                        </View>
+                        <View style={styles.iotDeviceInfo}>
+                          <Text style={styles.iotDeviceName}>{device.name}</Text>
+                          <View style={styles.iotDeviceStatus}>
+                            <View style={[
+                              styles.statusDot,
+                              device.status === 'connected' && styles.statusDotConnected,
+                              device.status === 'disconnected' && styles.statusDotDisconnected,
+                              device.status === 'pairing' && styles.statusDotPairing,
+                            ]} />
+                            <Text style={styles.iotDeviceStatusText}>
+                              {device.status === 'connected' ? 'Connected' : 
+                               device.status === 'disconnected' ? 'Disconnected' : 'Pairing...'}
+                            </Text>
+                          </View>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                        {device.batteryLevel !== undefined && (
+                          <View style={styles.batteryIndicator}>
+                            <Ionicons 
+                              name={device.batteryLevel > 50 ? 'battery-full' : 
+                                    device.batteryLevel > 20 ? 'battery-half' : 'battery-dead'} 
+                              size={20} 
+                              color={device.batteryLevel > 20 ? '#16a34a' : '#ef4444'} 
+                            />
+                            <Text style={styles.batteryText}>{device.batteryLevel}%</Text>
+                          </View>
+                        )}
+                      </View>
+                      
+                      <View style={styles.iotDeviceDetails}>
+                        <Text style={styles.iotDeviceLastSync}>
+                          Last sync: {new Date(device.lastSync).toLocaleString()}
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.iotDeviceActions}>
+                        {device.status === 'connected' ? (
+                          <>
+                            <TouchableOpacity 
+                              style={styles.iotActionButton}
+                              onPress={() => handleSyncDevice(device.id)}
+                            >
+                              <Ionicons name="sync" size={18} color="#3b82f6" />
+                              <Text style={styles.iotActionButtonText}>Sync Now</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              style={[styles.iotActionButton, styles.iotActionButtonDanger]}
+                              onPress={() => handleDisconnectDevice(device.id)}
+                            >
+                              <Ionicons name="close-circle" size={18} color="#ef4444" />
+                              <Text style={[styles.iotActionButtonText, styles.iotActionButtonTextDanger]}>
+                                Disconnect
+                              </Text>
+                            </TouchableOpacity>
+                          </>
+                        ) : (
+                          <TouchableOpacity 
+                            style={[styles.iotActionButton, styles.iotActionButtonPrimary]}
+                            onPress={() => handlePairDevice(device.id)}
+                            disabled={isPairing}
+                          >
+                            <Ionicons name="bluetooth" size={18} color="#ffffff" />
+                            <Text style={styles.iotActionButtonTextPrimary}>
+                              {isPairing ? 'Pairing...' : 'Reconnect'}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </CardContent>
+                  </Card>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+
+            {/* Scan for Devices Button */}
+            <TouchableOpacity
+              style={styles.scanButton}
+              onPress={handleScanForDevices}
+              disabled={isScanning}
+            >
+              <View style={styles.scanButtonContent}>
+                <View style={styles.scanButtonIcon}>
+                  <Ionicons 
+                    name={isScanning ? 'radio' : 'search'} 
+                    size={28} 
+                    color="#ffffff" 
+                  />
+                </View>
+                <View style={styles.scanButtonTextContainer}>
+                  <Text style={styles.scanButtonText}>
+                    {isScanning ? 'Scanning...' : 'Scan for Devices'}
+                  </Text>
+                  <Text style={styles.scanButtonSubtext}>
+                    Find nearby smart oil dispensers
+                  </Text>
+                </View>
+                {isScanning ? (
+                  <Ionicons name="ellipsis-horizontal" size={24} color="rgba(255,255,255,0.8)" />
+                ) : (
+                  <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
+                )}
+              </View>
+            </TouchableOpacity>
+
+            {/* How it Works Section */}
+            <Card style={styles.howItWorksCard}>
+              <CardContent style={styles.howItWorksContent}>
+                <Text style={styles.howItWorksTitle}>How IoT Tracking Works</Text>
+                <View style={styles.howItWorksStep}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>1</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Connect Your Device</Text>
+                    <Text style={styles.stepDescription}>
+                      Pair your smart oil dispenser via Bluetooth
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.howItWorksStep}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>2</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Automatic Tracking</Text>
+                    <Text style={styles.stepDescription}>
+                      Oil usage is measured and logged automatically
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.howItWorksStep}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>3</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Sync & Review</Text>
+                    <Text style={styles.stepDescription}>
+                      Data syncs to your account for health insights
+                    </Text>
+                  </View>
+                </View>
+              </CardContent>
+            </Card>
+          </View>
+        )}
+
+        {/* Manual Entry Tab Content */}
+        {activeTab === 'manual' && (
+          <>
         {/* Log Entry Form - Always Visible */}
         {showLogEntry && (
           <Card style={styles.logCard}>
             <CardContent style={styles.logContent}>
               <View style={styles.logHeader}>
-                <Text style={styles.logTitle}>{editingEntry ? t.update : t.logTitle}</Text>
+                <Text style={styles.logTitle}>{editingEntry ? t('oilTracker.addEntry') : t('oilTracker.addEntry')}</Text>
                 <TouchableOpacity onPress={() => {
                   setShowLogEntry(false);
                   setEditingEntry(null);
@@ -592,7 +853,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                           </Text>
                         )}
                         <Text style={styles.oilEstimate}>
-                          ≈ {Math.round(calculateOilAmount(selectedFood, parseFloat(quantity), unit) * 9)} cal ({calculateOilAmount(selectedFood, parseFloat(quantity), unit).toFixed(1)}g oil)
+                          ≈ {Math.round(calculateOilAmount(selectedFood, parseFloat(quantity), unit) * 9 * (6.25 / 100))} cal ({calculateOilAmount(selectedFood, parseFloat(quantity), unit).toFixed(1)}g oil)
                         </Text>
                       </>
                     )}
@@ -619,7 +880,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                   {/* Group Logging Section */}
                   {!editingEntry && adminGroups.length > 0 && (
                     <View style={styles.formGroup}>
-                      <Text style={styles.label}>{t.groupLogging}</Text>
+                      <Text style={styles.label}>Group Logging</Text>
                       <View style={styles.groupToggleRow}>
                         <TouchableOpacity
                           style={[styles.groupToggle, !selectedGroup && styles.groupToggleActive]}
@@ -631,7 +892,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                             color={!selectedGroup ? '#1b4a5a' : '#9ca3af'} 
                           />
                           <Text style={[styles.groupToggleText, !selectedGroup && styles.groupToggleTextActive]}>
-                            {t.personalLog}
+                            Log for Self
                           </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -648,7 +909,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                             color={selectedGroup ? '#1b4a5a' : '#9ca3af'} 
                           />
                           <Text style={[styles.groupToggleText, selectedGroup && styles.groupToggleTextActive]}>
-                            {t.logForMembers}
+                            Log for Members
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -657,7 +918,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                         <>
                           {/* Group Selector */}
                           <View style={styles.groupSelector}>
-                            <Text style={styles.groupSelectorLabel}>{t.selectGroup}</Text>
+                            <Text style={styles.groupSelectorLabel}>Select Group</Text>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.groupChips}>
                               {adminGroups.map((group) => (
                                 <TouchableOpacity
@@ -682,7 +943,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                           {/* Member Selection */}
                           {groupMembers.length > 0 && (
                             <View style={styles.memberSelection}>
-                              <Text style={styles.memberSelectionLabel}>{t.selectMembers}</Text>
+                              <Text style={styles.memberSelectionLabel}>Select Members</Text>
                               <View style={styles.memberList}>
                                 {groupMembers.map((member) => (
                                   <TouchableOpacity
@@ -736,10 +997,10 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                   }}
                   style={styles.cancelButton}
                 >
-                  {t.cancel}
+                  {t('common.cancel')}
                 </Button>
                 <Button onPress={handleLog} style={styles.saveButton}>
-                  {editingEntry ? t.update : t.save}
+                  {editingEntry ? t('common.save') : t('common.save')}
                 </Button>
               </View>
             </CardContent>
@@ -756,7 +1017,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
               <Ionicons name="add-circle" size={28} color="#ffffff" />
             </View>
             <View style={styles.logButtonTextContainer}>
-              <Text style={styles.logButtonText}>{t.logButton}</Text>
+              <Text style={styles.logButtonText}>{t('oilTracker.addEntry')}</Text>
               <Text style={styles.logButtonSubtext}>Track what you cooked today</Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
@@ -795,7 +1056,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                               <Badge variant="success">
                                 <View style={styles.badgeContent}>
                                   <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
-                                  <Text style={styles.badgeText}>{t.verified}</Text>
+                                  <Text style={styles.badgeText}>{t('groups.verified')}</Text>
                                 </View>
                               </Badge>
                             )}
@@ -811,7 +1072,7 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
                         </View>
                         <View style={styles.entryDetails}>
                           <Text style={styles.entryDetail}>
-                            {Math.round(entry.amount * 9)} cal ({entry.amount}ml) • {entry.oil}
+                            {Math.round(entry.amount * 9 * (6.25 / 100))} cal ({entry.amount}ml) • {entry.oil}
                           </Text>
                           <Text style={styles.entryDetail}>
                             {entry.quantity} {entry.unit}
@@ -826,6 +1087,8 @@ export function MobileOilTracker({ language, navigation, route }: MobileOilTrack
             })
           )}
         </View>
+          </>
+        )}
 
       </ScrollView>
 
@@ -1445,5 +1708,255 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#1b4a5a',
+  },
+  // Tab Styles
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  tabActive: {
+    backgroundColor: '#1b4a5a',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#5B5B5B',
+  },
+  tabTextActive: {
+    color: '#ffffff',
+  },
+  // IoT Device Styles
+  iotContainer: {
+    flex: 1,
+  },
+  iotSection: {
+    marginBottom: 20,
+  },
+  iotSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 12,
+  },
+  iotEmptyCard: {
+    marginBottom: 12,
+  },
+  iotEmptyContent: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  iotEmptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#5B5B5B',
+    marginTop: 12,
+  },
+  iotEmptySubtext: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 4,
+  },
+  iotDeviceCard: {
+    marginBottom: 12,
+  },
+  iotDeviceContent: {
+    padding: 16,
+  },
+  iotDeviceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  iotDeviceIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iotDeviceIconConnected: {
+    backgroundColor: '#dcfce7',
+  },
+  iotDeviceIconDisconnected: {
+    backgroundColor: '#fee2e2',
+  },
+  iotDeviceInfo: {
+    flex: 1,
+  },
+  iotDeviceName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 4,
+  },
+  iotDeviceStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#9ca3af',
+  },
+  statusDotConnected: {
+    backgroundColor: '#16a34a',
+  },
+  statusDotDisconnected: {
+    backgroundColor: '#ef4444',
+  },
+  statusDotPairing: {
+    backgroundColor: '#f59e0b',
+  },
+  iotDeviceStatusText: {
+    fontSize: 13,
+    color: '#5B5B5B',
+  },
+  batteryIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  batteryText: {
+    fontSize: 12,
+    color: '#5B5B5B',
+  },
+  iotDeviceDetails: {
+    marginBottom: 12,
+  },
+  iotDeviceLastSync: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  iotDeviceActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  iotActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  iotActionButtonPrimary: {
+    backgroundColor: '#1b4a5a',
+    borderColor: '#1b4a5a',
+  },
+  iotActionButtonDanger: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  iotActionButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  iotActionButtonTextPrimary: {
+    color: '#ffffff',
+  },
+  iotActionButtonTextDanger: {
+    color: '#ef4444',
+  },
+  scanButton: {
+    marginBottom: 24,
+    backgroundColor: '#3b82f6',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  scanButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  scanButtonIcon: {
+    width: 56,
+    height: 56,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scanButtonTextContainer: {
+    flex: 1,
+  },
+  scanButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  scanButtonSubtext: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 13,
+  },
+  howItWorksCard: {
+    marginBottom: 20,
+  },
+  howItWorksContent: {
+    padding: 16,
+  },
+  howItWorksTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 16,
+  },
+  howItWorksStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 16,
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#1b4a5a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepNumberText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#040707',
+    marginBottom: 4,
+  },
+  stepDescription: {
+    fontSize: 13,
+    color: '#5B5B5B',
+    lineHeight: 18,
   },
 });

@@ -12,9 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Card, CardContent } from './Card';
 import { Badge } from './Badge';
+import { t } from '../../i18n';
 
 interface MobileRecipesProps {
-  language: string;
 }
 
 const recipes = [

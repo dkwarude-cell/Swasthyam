@@ -72,6 +72,11 @@ import { LeaderboardScreen } from '../components/native/screens/LeaderboardScree
 import { RewardsStoreScreen } from '../components/native/screens/RewardsStoreScreen';
 
 import { EducationModuleScreen } from '../components/native/screens/EducationModuleScreen';
+import { EducationHubScreen } from '../components/native/screens/EducationHubScreen';
+import { ModuleDetailScreen } from '../components/native/screens/ModuleDetailScreen';
+import { VideoLessonScreen } from '../components/native/screens/VideoLessonScreen';
+import { QuizScreen } from '../components/native/screens/QuizScreen';
+import { ReadingLessonScreen } from '../components/native/screens/ReadingLessonScreen';
 
 import { DeviceManagementScreen } from '../components/native/screens/DeviceManagementScreen';
 import { DeviceDetailScreen } from '../components/native/screens/DeviceDetailScreen';
@@ -81,6 +86,8 @@ import { TrendViewScreen } from '../components/native/screens/TrendViewScreen';
 import { GroupDetailScreen } from '../components/native/screens/GroupDetailScreen';
 import { GroupDashboardScreen } from '../components/native/screens/GroupDashboardScreen';
 import { GroupManagementScreen } from '../components/native/screens/GroupManagementScreen';
+
+import { IoTDeviceDetail } from '../components/native/IoTDeviceDetail';
 
 import { RewardsScreen } from '../components/native/screens/RewardsScreen';
 
@@ -334,6 +341,10 @@ function MainStackNavigator({ language, onLogout }: MainStackProps) {
         component={DeviceDetailScreen as React.ComponentType<{}>} 
       />
       <MainStack.Screen name="TrendView" component={TrendViewScreen} />
+      <MainStack.Screen 
+        name="IoTDeviceDetail" 
+        component={IoTDeviceDetail as React.ComponentType<{}>} 
+      />
 
       {/* Recipe Screens */}
       <MainStack.Screen name="Recipes">
@@ -363,6 +374,31 @@ function MainStackNavigator({ language, onLogout }: MainStackProps) {
       <MainStack.Screen 
         name="EducationModule" 
         component={EducationModuleScreen as React.ComponentType<{}>} 
+      />
+      <MainStack.Screen 
+        name="EducationHub" 
+        component={EducationHubScreen as React.ComponentType<{}>} 
+        options={{ headerShown: false }}
+      />
+      <MainStack.Screen 
+        name="ModuleDetail" 
+        component={ModuleDetailScreen as React.ComponentType<{}>} 
+        options={{ headerShown: false }}
+      />
+      <MainStack.Screen 
+        name="VideoLesson" 
+        component={VideoLessonScreen as React.ComponentType<{}>} 
+        options={{ headerShown: false }}
+      />
+      <MainStack.Screen 
+        name="Quiz" 
+        component={QuizScreen as React.ComponentType<{}>} 
+        options={{ headerShown: false }}
+      />
+      <MainStack.Screen 
+        name="ReadingLesson" 
+        component={ReadingLessonScreen as React.ComponentType<{}>} 
+        options={{ headerShown: false }}
       />
 
       {/* Groups Screens */}

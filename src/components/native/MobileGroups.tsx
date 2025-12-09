@@ -17,13 +17,13 @@ import { Card, CardContent } from './Card';
 import { Badge } from './Badge';
 import apiService, { Group } from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
+import { t } from '../../i18n';
 
 interface MobileGroupsProps {
-  language: string;
   navigation?: any;
 }
 
-export function MobileGroups({ language, navigation }: MobileGroupsProps) {
+export function MobileGroups({ navigation }: MobileGroupsProps) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [invitations, setInvitations] = useState<Group[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -166,33 +166,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
     }
   };
 
-  const text = {
-    en: {
-      title: 'Groups',
-      subtitle: 'Manage your cooking groups',
-      createGroup: 'Create New Group',
-      myGroups: 'My Groups',
-      invitations: 'Pending Invitations',
-      noGroups: 'No groups yet',
-      noGroupsText: 'Create or join a group to start tracking together',
-      noInvitations: 'No pending invitations',
-      members: 'members',
-      admin: 'Admin',
-      accept: 'Accept',
-      reject: 'Reject',
-      groupName: 'Group Name',
-      description: 'Description (Optional)',
-      groupType: 'Group Type',
-      family: 'Family',
-      school: 'School',
-      community: 'Community',
-      other: 'Other',
-      cancel: 'Cancel',
-      create: 'Create Group',
-    },
-  };
 
-  const t = text[language as keyof typeof text] || text.en;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -207,8 +181,8 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
               <Ionicons name="people" size={24} color="#ffffff" />
             </View>
             <View>
-              <Text style={styles.title}>{t.title}</Text>
-              <Text style={styles.subtitle}>{t.subtitle}</Text>
+              <Text style={styles.title}>{t('groups.title')}</Text>
+              <Text style={styles.subtitle}>{t('groups.subtitle')}</Text>
             </View>
           </View>
           <View style={{ width: 40 }} />
@@ -222,7 +196,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
         {/* Pending Invitations */}
         {invitations.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t.invitations}</Text>
+            <Text style={styles.sectionTitle}>{t('groups.invitations')}</Text>
             {invitations.map((group) => (
               <Card key={group._id} style={styles.invitationCard}>
                 <CardContent style={styles.invitationContent}>
@@ -242,7 +216,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
                           </Badge>
                         </View>
                         <Text style={styles.memberCount}>
-                          {group.members.filter(m => m.status === 'active').length} {t.members}
+                          {group.members.filter(m => m.status === 'active').length} {t('groups.members')}
                         </Text>
                       </View>
                     </View>
@@ -253,14 +227,14 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
                       onPress={() => handleAcceptInvitation(group._id)}
                     >
                       <Ionicons name="checkmark" size={20} color="#ffffff" />
-                      <Text style={styles.acceptButtonText}>{t.accept}</Text>
+                      <Text style={styles.acceptButtonText}>{t('groups.accept')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.rejectButton]}
                       onPress={() => handleRejectInvitation(group._id)}
                     >
                       <Ionicons name="close" size={20} color="#ef4444" />
-                      <Text style={styles.rejectButtonText}>{t.reject}</Text>
+                      <Text style={styles.rejectButtonText}>{t('groups.reject')}</Text>
                     </TouchableOpacity>
                   </View>
                 </CardContent>
@@ -271,14 +245,14 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
 
         {/* My Groups */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.myGroups}</Text>
+          <Text style={styles.sectionTitle}>{t('groups.myGroups')}</Text>
           
           {groups.length === 0 ? (
             <Card style={styles.emptyCard}>
               <CardContent style={styles.emptyContent}>
                 <Ionicons name="people-outline" size={64} color="#d1d5db" />
-                <Text style={styles.emptyTitle}>{t.noGroups}</Text>
-                <Text style={styles.emptyText}>{t.noGroupsText}</Text>
+                <Text style={styles.emptyTitle}>{t('groups.noGroups')}</Text>
+                <Text style={styles.emptyText}>{t('groups.noGroupsText')}</Text>
               </CardContent>
             </Card>
           ) : (
@@ -302,7 +276,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
                           {isAdmin && (
                             <View style={styles.badgeWrapper}>
                               <Badge variant="success">
-                                <Text style={styles.adminBadge}>{t.admin}</Text>
+                                <Text style={styles.adminBadge}>{t('groups.admin')}</Text>
                               </Badge>
                             </View>
                           )}
@@ -319,7 +293,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
                             </Badge>
                           </View>
                           <Text style={styles.memberCount}>
-                            {activeMembers.length} {t.members}
+                            {activeMembers.length} {t('groups.members')}
                           </Text>
                         </View>
                       </View>
@@ -340,7 +314,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
       >
         <LinearGradient colors={['#1b4a5a', '#0f3a47']} style={styles.createButtonGradient}>
           <Ionicons name="add" size={28} color="#ffffff" />
-          <Text style={styles.createButtonText}>{t.createGroup}</Text>
+          <Text style={styles.createButtonText}>{t('groups.createGroup')}</Text>
         </LinearGradient>
       </TouchableOpacity>
 
@@ -349,7 +323,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t.createGroup}</Text>
+              <Text style={styles.modalTitle}>{t('groups.createGroup')}</Text>
               <TouchableOpacity onPress={() => setShowCreateModal(false)}>
                 <Ionicons name="close" size={24} color="#5B5B5B" />
               </TouchableOpacity>
@@ -357,7 +331,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
 
             <ScrollView style={styles.modalContent}>
               <View style={styles.formGroup}>
-                <Text style={styles.label}>{t.groupName}</Text>
+                <Text style={styles.label}>{t('groups.groupName')}</Text>
                 <TextInput
                   style={styles.input}
                   value={newGroupName}
@@ -368,7 +342,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>{t.description}</Text>
+                <Text style={styles.label}>{t('groups.description')}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={newGroupDescription}
@@ -381,7 +355,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>{t.groupType}</Text>
+                <Text style={styles.label}>{t('groups.groupType')}</Text>
                 <View style={styles.typeButtons}>
                   {(['family', 'school', 'community', 'other'] as const).map((type) => (
                     <TouchableOpacity
@@ -404,7 +378,7 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
                           newGroupType === type && { color: getGroupColor(type) }
                         ]}
                       >
-                        {t[type]}
+                        {t(`groups.${type}`)}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -417,14 +391,14 @@ export function MobileGroups({ language, navigation }: MobileGroupsProps) {
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setShowCreateModal(false)}
               >
-                <Text style={styles.cancelButtonText}>{t.cancel}</Text>
+                <Text style={styles.cancelButtonText}>{t('groups.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.submitButton]}
                 onPress={handleCreateGroup}
                 disabled={isLoading}
               >
-                <Text style={styles.submitButtonText}>{t.create}</Text>
+                <Text style={styles.submitButtonText}>{t('groups.create')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -763,3 +737,4 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 });
+
